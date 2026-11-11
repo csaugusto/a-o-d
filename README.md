@@ -1,5 +1,7 @@
 # A o D · El juego de ¿Qué prefieres?
 
+**Jugar:** https://csaugusto.github.io/a-o-d/ (se publica solo con cada cambio en `main`).
+
 Un juego de cartas para jugar con tu pareja, amigos o familia. Cada carta trae
 dos opciones, de lo más cotidiano («¿cilantro o perejil?») a lo absurdo y a
 veces asqueroso. Cada quien elige una. Sin puntos y sin ganadores: hay que

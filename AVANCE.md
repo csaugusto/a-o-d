@@ -42,7 +42,7 @@ Detalle: `docs/identidad.md`. Imágenes para compartir: `docs/img/`.
 
 ## 3. El juego digital (listo)
 
-Abrir `index.html`. Pensado para el teléfono en una sobremesa:
+Se juega en **https://csaugusto.github.io/a-o-d/** (o abriendo `index.html`). Pensado para el teléfono en una sobremesa:
 
 - El mazo boca abajo; tocas y sale la primera carta. Tocar, deslizar o
   «Siguiente carta» para avanzar; «Anterior» para regresar.
