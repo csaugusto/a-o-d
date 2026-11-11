@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="es" data-theme="light">
+<head>
+<meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=Covered+By+Your+Grace&family=Mansalva&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../../css/tokens.css">
+<link rel="stylesheet" href="../../../css/carta.css">
+<link rel="stylesheet" href="base.css">
+<title>Cartas</title>
+<style>
+.mesa { display: grid; grid-template-columns: repeat(4, 260px); gap: 32px; padding: 40px; }
+</style>
+</head>
+<body>
+<div class="mesa" id="mesa"></div>
+<script src="../../../js/cartas.js"></script>
+<script src="../../../js/carta.js"></script>
+<script>
+var M = window.MAZO;
+var elegidas = { comida: "COM-01", destinos: "DES-02", familia: "FAM-08", celebrities: "CEL-06", dilemas: "DIL-03", asco: "ASC-02" };
+var mesa = document.getElementById("mesa");
+M.categorias.forEach(function (cat) {
+  var c = cat.cartas.filter(function (k) { return k.id === elegidas[cat.id]; })[0] || cat.cartas[0];
+  mesa.appendChild(Carta.frente(c, cat));
+});
+mesa.appendChild(Carta.reverso());
+mesa.appendChild(Carta.enBlanco());
+</script>
+</body>
+</html>

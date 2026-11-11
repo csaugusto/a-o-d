@@ -1,0 +1,3565 @@
+<title>A o D</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=Covered+By+Your+Grace&family=Mansalva&display=swap" rel="stylesheet">
+<style>
+/* css/tokens.css */
+/* =====================================================================
+   A o D · Tokens
+   Dirección «Sobremesa a mano»: una sola tinta sobre papeles de colores.
+   Las cartas no cambian con el tema; solo la mesa (fondo de la aplicación).
+   ===================================================================== */
+
+:root {
+  /* Tinta: todo lo escrito y dibujado en las cartas */
+  --tinta: #1F2C92;            /* azul pluma */
+  --servilleta: #FDFDFA;       /* papel sin color y letra sobre azul */
+
+  /* Un papel por categoría */
+  --papel-comida: #FFCF45;       /* maíz */
+  --papel-destinos: #84CDEF;     /* cielo */
+  --papel-familia: #FF9A6B;      /* mamey */
+  --papel-celebrities: #FF8DC0;  /* chicle */
+  --papel-dilemas: #B9A5F5;      /* jacaranda */
+  --papel-asco: #B4D43B;         /* pepinillo */
+  --papel-blanco: var(--servilleta);
+
+  /* Dos manos y una imprenta */
+  --mano-a: "Mansalva", "Bradley Hand", "Segoe Print", "Comic Sans MS", cursive;
+  --mano-b: "Covered By Your Grace", "Marker Felt", "Segoe Print", "Comic Sans MS", cursive;
+  --imprenta: "Archivo", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+
+  /* Mesa: fondo de la aplicación y su texto (cambia con el tema) */
+  --mesa: #F1F3F5;             /* mantel */
+  --mesa-texto: #1F2C92;
+  --mesa-tenue: #5A6297;
+  --mesa-linea: rgba(31, 44, 146, .22);
+  --mesa-sombra: rgba(23, 30, 90, .38);
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --mesa: #141838;           /* mantel de noche */
+    --mesa-texto: #E8EAF8;
+    --mesa-tenue: #A3A9D6;
+    --mesa-linea: rgba(232, 234, 248, .2);
+    --mesa-sombra: rgba(0, 0, 0, .6);
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --mesa: #141838;
+  --mesa-texto: #E8EAF8;
+  --mesa-tenue: #A3A9D6;
+  --mesa-linea: rgba(232, 234, 248, .2);
+  --mesa-sombra: rgba(0, 0, 0, .6);
+  color-scheme: dark;
+}
+
+/* css/carta.css */
+/* =====================================================================
+   A o D · Componente carta
+   Poker 63.5 × 88.9 mm (5:7). 1cqw = 0.635 mm impresa = 3 px a 300 px.
+
+   Trampa: las unidades cqw se resuelven contra el contenedor ANCESTRO.
+   .carta declara el contenedor y no usa cqw; todo lo medido vive en sus
+   capas hijas (.carta__papel y .carta__cara).
+
+   Zona segura: 8cqw (5 mm). Esquinas: 5cqw (3.175 mm).
+   Requiere css/tokens.css.
+   ===================================================================== */
+
+.carta {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 5 / 7;
+  container-type: inline-size;
+  /* Los mismos 5cqw en porcentaje: 5 % del ancho y 3.571 % del alto. */
+  border-radius: 5% / 3.5714%;
+  color: var(--tinta);
+  font-style: normal;
+  font-weight: 400;
+  letter-spacing: normal;
+  word-spacing: normal;
+  text-align: left;
+  text-transform: none;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.carta *,
+.carta *::before,
+.carta *::after {
+  box-sizing: border-box;
+}
+
+/* ---------- Papel: el fondo, lo único que crece con el sangrado ---------- */
+
+.carta__papel {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: 5cqw;
+  background-color: var(--papel, var(--servilleta));
+  pointer-events: none;
+}
+
+/* Grano de papel (el mismo de la lámina): escala con la carta. */
+.carta__papel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: .55;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='252' height='352'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' seed='7'/%3E%3CfeColorMatrix values='0 0 0 0 .12 0 0 0 0 .14 0 0 0 0 .42 0 0 0 .55 -.17'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E") center / 100% 100%;
+}
+
+.carta--comida      { --papel: var(--papel-comida); }
+.carta--destinos    { --papel: var(--papel-destinos); }
+.carta--familia     { --papel: var(--papel-familia); }
+.carta--celebrities { --papel: var(--papel-celebrities); }
+.carta--dilemas     { --papel: var(--papel-dilemas); }
+.carta--asco        { --papel: var(--papel-asco); }
+.carta--blanco,
+.carta--propia,
+.carta--reglas,
+.carta--portada     { --papel: var(--papel-blanco); }
+
+/* ---------- Cara: todo lo escrito ---------- */
+
+.carta__cara {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  padding: 9.8cqw 9cqw 8.4cqw;
+}
+
+/* Se lee como una sola frase con lector de pantalla; no se ve. */
+.carta__frase {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.trazo {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 3.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  overflow: visible;
+}
+
+.carta__arranque {
+  margin: 0;
+  font-family: var(--mano-a);
+  font-size: 6.3cqw;
+  line-height: 1;
+  -webkit-text-stroke: .014em currentColor;
+}
+
+.carta__garabato {
+  position: absolute;
+  top: 8.2cqw;
+  right: 8.4cqw;
+  width: 12cqw;
+  height: 12cqw;
+}
+
+.carta__dilema {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 0;
+  padding: 7.6cqw 0 5cqw;
+}
+
+.carta__opcion {
+  margin: 0;
+  line-height: 1.04;
+  text-wrap: balance;
+  /* Último recurso para una palabra imposible: partirla antes que salirse. */
+  overflow-wrap: anywhere;
+  hyphens: manual;
+  -webkit-text-stroke: .016em currentColor;
+}
+
+.carta__opcion--a {
+  font-family: var(--mano-a);
+  font-size: calc(var(--t) * .95);
+  text-align: left;
+  padding-right: 5cqw;
+}
+
+.carta__opcion--b {
+  font-family: var(--mano-b);
+  font-size: calc(var(--t) * 1.14);
+  line-height: 1;
+  text-align: right;
+  padding-left: 5cqw;
+}
+
+.carta__cierre { white-space: nowrap; }
+
+.carta__o {
+  flex: none;
+  align-self: center;
+  width: var(--o);
+  height: var(--o);
+  margin: .6cqw 0;
+}
+
+/* Niveles de letra: los decide js/carta.js según la longitud del texto.
+   t-mini solo aparece con textos propios fuera de lo normal (mayúsculas
+   anchas, palabras de más de 20 letras). Si cambias un valor, cámbialo
+   también en NIVELES de js/carta.js. */
+.t-corta { --t: 17cqw;   --o: 23cqw; }
+.t-media { --t: 10.6cqw; --o: 22cqw; }
+.t-larga { --t: 7.7cqw;  --o: 17cqw; }
+.t-mini  { --t: 6cqw;    --o: 13cqw; }
+
+.carta__pie {
+  margin: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 3cqw;
+  font-family: var(--imprenta);
+  font-stretch: 68%;
+  font-weight: 650;
+  font-size: 3.2cqw;
+  line-height: 1;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+}
+
+.carta__codigo { white-space: nowrap; }
+
+.carta__codigo i {
+  display: inline-block;
+  width: 6cqw;
+  border-bottom: .3cqw solid currentColor;
+  opacity: .6;
+  font-style: normal;
+}
+
+/* ---------- Carta en blanco: la misma carta, todavía sin tinta ---------- */
+
+.carta--blanco .carta__cara { grid-template-rows: auto minmax(0, 1fr) auto auto; }
+.carta--blanco .carta__dilema { padding: 4.2cqw 0 2.6cqw; }
+.carta--blanco .carta__o { --o: 15cqw; margin: 0; }
+
+/* Tres renglones por opción a 10.4cqw (6.6 mm): cabe letra a mano real. */
+.carta__renglones {
+  position: relative;
+  flex: none;
+  height: 32cqw;
+}
+
+.carta__renglones svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: .6;
+}
+
+.carta__renglones .carta__cierre {
+  position: absolute;
+  right: 0;
+  bottom: -.6cqw;
+  font-family: var(--mano-b);
+  font-size: 10.4cqw;
+  line-height: 1;
+  -webkit-text-stroke: .016em currentColor;
+}
+
+.carta__regla {
+  margin: 0 0 4.2cqw;
+  font-family: var(--mano-b);
+  font-size: 6.6cqw;
+  line-height: 1;
+  transform: rotate(-2deg);
+  transform-origin: left center;
+  -webkit-text-stroke: .012em currentColor;
+}
+
+/* ---------- Reverso: igual para todas, se lee igual girado 180 grados ---------- */
+
+.carta--reverso { --papel: var(--tinta); color: var(--servilleta); }
+.carta--reverso .carta__papel::before { opacity: .35; }
+
+/* La trama se centra en la carta y mide 110 × 150cqw: cubre el sangrado
+   sin costuras y no se mueve al activarlo. */
+.carta__trama {
+  position: absolute;
+  inset: 0;
+  background-color: currentColor;
+  opacity: .17;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 110 150'%3E%3Cdefs%3E%3Cpath id='b1' d='M-8 -3C-8.3 -2.8 -9.5 -2.4 -9.8 -1.7C-10 -1 -10 0.4 -9.4 1.2C-8.9 2.1 -7.8 3.1 -6.7 3.5C-5.6 3.8 -4 3.8 -2.9 3.4C-1.8 3.1 -0.7 2 -0.3 1.2C0.2 0.4 0.2 -0.8 -0 -1.4C-0.2 -2.1 -1 -2.5 -1.5 -2.5C-2 -2.5 -2.9 -2.1 -3.1 -1.5C-3.3 -0.8 -3.4 0.4 -2.9 1.3C-2.4 2.1 -1.3 3.2 -0.2 3.6C0.9 4 2.6 4.1 3.7 3.7C4.9 3.4 6.1 2.3 6.7 1.4C7.2 0.4 7.3 -1 7 -1.8C6.7 -2.6 5.6 -3.4 4.9 -3.4C4.2 -3.4 3.1 -2.7 2.8 -1.9C2.5 -1.1 2.5 0.4 3 1.4C3.5 2.4 4.8 3.6 6 4C7.3 4.5 9.1 4.5 10.3 4C11.5 3.6 12.8 2.4 13.3 1.4C13.8 0.4 13.8 -1.1 13.5 -1.9C13.2 -2.6 12.1 -3.3 11.4 -3.3C10.7 -3.3 9.7 -2.6 9.4 -1.8C9.1 -1 9.2 0.4 9.7 1.3C10.3 2.2 11.5 3.3 12.6 3.7C13.8 4.1 15.5 4 16.6 3.6C17.7 3.2 18.8 2.1 19.3 1.2C19.8 0.4 19.8 -0.9 19.5 -1.6C19.3 -2.2 18.4 -2.7 17.9 -2.7C17.3 -2.7 16.5 -2.2 16.3 -1.6C16 -0.9 16 0.3 16.5 1.2C17 2 18.1 3 19.2 3.4C20.3 3.8 21.9 3.8 23 3.5C24.2 3.1 25.3 2 25.8 1.2C26.4 0.3 26.4 -1.1 26.1 -1.8C25.9 -2.5 25 -3.1 24.4 -3.1C23.8 -3.1 22.8 -2.5 22.6 -1.8C22.3 -1.1 22.3 0.2 22.8 1.1C23.3 2 24.5 3.1 25.6 3.4C26.7 3.8 28.4 3.8 29.6 3.4C30.7 3 31.8 1.9 32.3 1C32.9 0.2 32.9 -1.2 32.6 -1.9C32.3 -2.6 31.4 -3.2 30.8 -3.2C30.2 -3.2 29.3 -2.6 29 -1.9C28.8 -1.3 28.8 0.1 29.3 1C29.8 1.9 30.9 3 32.1 3.4C33.2 3.8 34.9 3.8 36.1 3.4C37.2 3 38.4 1.9 39 0.9C39.5 0 39.5 -1.4 39.2 -2.2C38.9 -2.9 38 -3.6 37.3 -3.6C36.7 -3.6 35.6 -3 35.3 -2.2C35 -1.5 35 -0.1 35.5 0.9C36 1.8 37.3 3 38.4 3.4C39.6 3.8 41.4 3.8 42.6 3.4C43.8 3 45.1 1.8 45.6 0.8C46.2 -0.1 46.1 -1.6 45.8 -2.4C45.5 -3.2 44.4 -3.9 43.8 -3.9C43.1 -3.9 42.1 -3.2 41.8 -2.4C41.5 -1.6 41.6 -0.2 42.1 0.7C42.6 1.6 43.9 2.6 45 3C46.2 3.4 47.8 3.3 48.9 2.9C50 2.5 51.1 1.4 51.6 0.5C52 -0.3 52 -1.5 51.8 -2.1C51.6 -2.8 50.7 -3.2 50.2 -3.2C49.8 -3.2 49 -2.7 48.8 -2.1C48.6 -1.5 48.7 -0.3 49.2 0.4C49.7 1.2 50.7 2.1 51.7 2.4C52.7 2.7 54.2 2.7 55.2 2.4C56.2 2 57.3 1.1 57.8 0.3C58.2 -0.4 58.3 -1.6 58.1 -2.2C57.9 -2.8 57.2 -3.3 56.7 -3.3C56.2 -3.3 55.5 -2.9 55.2 -2.3C55 -1.7 55 -0.5 55.4 0.3C55.9 1.2 57 2.2 58 2.6C59.1 3 60.8 3.1 61.9 2.7C63.1 2.4 64.3 1.3 64.9 0.4C65.4 -0.5 65.5 -2 65.2 -2.8C64.9 -3.6 63.9 -4.3 63.2 -4.4C62.5 -4.4 61.4 -3.6 61.1 -2.9C60.8 -2.1 60.8 -0.6 61.4 0.4C61.9 1.3 63.2 2.4 64.4 2.8C65.5 3.2 67.3 3.2 68.5 2.8C69.6 2.3 70.8 1.2 71.3 0.3C71.8 -0.6 71.7 -2 71.5 -2.7C71.2 -3.4 70.3 -3.9 69.7 -3.9C69.1 -3.9 68.1 -3.4 67.9 -2.7C67.6 -2 67.6 -0.6 68.1 0.3C68.6 1.1 69.7 2.3 70.9 2.7C72 3.1 73.8 3.1 74.9 2.7C76.1 2.3 77.4 1.2 77.9 0.3C78.4 -0.7 78.4 -2.1 78.1 -2.9C77.9 -3.7 76.8 -4.4 76.1 -4.4C75.5 -4.4 74.4 -3.6 74.2 -2.8C73.9 -2.1 74 -0.7 74.5 0.2C75.1 1.1 76.3 2.2 77.4 2.5C78.5 2.9 80.2 2.8 81.3 2.4C82.3 2 83.4 1 83.8 0.2C84.3 -0.6 84.3 -1.8 84.1 -2.4C83.8 -3 83.1 -3.4 82.6 -3.4C82.1 -3.4 81.4 -3 81.2 -2.4C81 -1.8 81 -0.6 81.5 0.2C81.9 0.9 83 1.9 84 2.3C85.1 2.7 86.6 2.7 87.7 2.4C88.8 2 89.9 1.1 90.4 0.2C90.9 -0.6 91 -1.9 90.8 -2.6C90.6 -3.3 89.7 -3.9 89.1 -3.9C88.5 -3.9 87.5 -3.3 87.3 -2.6C87 -1.9 87 -0.6 87.5 0.3C88 1.2 89.2 2.4 90.3 2.8C91.4 3.2 93.2 3.2 94.3 2.8C95.5 2.4 96.7 1.3 97.3 0.4C97.8 -0.5 97.8 -2 97.5 -2.7C97.2 -3.5 96.2 -4.2 95.5 -4.1C94.9 -4.1 93.9 -3.4 93.6 -2.7C93.3 -1.9 93.4 -0.5 93.9 0.5C94.4 1.4 95.7 2.4 96.8 2.8C97.9 3.2 99.6 3.2 100.7 2.8C101.8 2.4 102.9 1.3 103.4 0.5C103.9 -0.4 103.9 -1.7 103.6 -2.3C103.4 -3 102.6 -3.4 102 -3.4C101.5 -3.4 100.6 -3 100.4 -2.3C100.1 -1.6 100.1 -0.3 100.5 0.5C101 1.4 102.1 2.6 103.3 3C104.4 3.4 106.1 3.5 107.3 3.1C108.5 2.7 109.8 1.6 110.3 0.7C110.9 -0.3 110.6 -2 110.6 -2.6'/%3E%3Cpath id='b2' d='M-8 -3C-8.3 -2.8 -9.6 -2.5 -9.9 -1.7C-10.2 -1 -10.2 0.4 -9.7 1.3C-9.2 2.2 -8 3.4 -6.8 3.8C-5.7 4.3 -3.9 4.3 -2.6 3.9C-1.4 3.5 -0.1 2.3 0.4 1.3C1 0.3 1 -1.2 0.6 -2C0.3 -2.9 -0.8 -3.6 -1.5 -3.6C-2.3 -3.6 -3.4 -2.9 -3.8 -2.1C-4.1 -1.3 -4.2 0.3 -3.6 1.3C-3.1 2.3 -1.8 3.6 -0.5 4C0.7 4.5 2.7 4.5 3.9 4C5.2 3.5 6.5 2.3 7 1.2C7.6 0.2 7.5 -1.4 7.2 -2.2C6.8 -3 5.7 -3.7 4.9 -3.7C4.2 -3.7 3.1 -2.9 2.8 -2.1C2.5 -1.3 2.6 0.2 3.2 1.1C3.7 2 5 3.1 6.2 3.5C7.3 3.8 9 3.7 10.1 3.3C11.2 2.9 12.3 1.8 12.8 0.9C13.2 0.1 13.2 -1.1 12.9 -1.8C12.7 -2.4 11.9 -2.8 11.4 -2.8C10.9 -2.8 10.2 -2.3 10 -1.7C9.8 -1.1 9.9 0 10.4 0.8C10.8 1.5 11.9 2.5 12.9 2.8C13.9 3.1 15.4 3.1 16.4 2.8C17.4 2.4 18.5 1.5 19 0.7C19.4 -0.1 19.5 -1.2 19.3 -1.8C19.1 -2.5 18.4 -3 17.9 -3C17.4 -3 16.6 -2.6 16.4 -2C16.1 -1.4 16.1 -0.1 16.6 0.7C17 1.5 18.1 2.6 19.2 3C20.3 3.4 22 3.5 23.1 3.1C24.3 2.7 25.5 1.6 26.1 0.7C26.6 -0.2 26.7 -1.7 26.4 -2.5C26.1 -3.3 25 -4 24.4 -4C23.7 -4.1 22.6 -3.4 22.2 -2.6C21.9 -1.8 21.9 -0.3 22.4 0.7C23 1.6 24.2 2.8 25.5 3.3C26.7 3.7 28.5 3.7 29.7 3.2C30.9 2.8 32.2 1.6 32.7 0.6C33.2 -0.4 33.2 -1.9 32.9 -2.6C32.6 -3.4 31.5 -4.1 30.8 -4.1C30.2 -4.1 29.1 -3.4 28.8 -2.7C28.5 -1.9 28.5 -0.4 29 0.5C29.5 1.5 30.8 2.6 32 3C33.2 3.4 35 3.4 36.1 3C37.3 2.6 38.6 1.4 39.1 0.5C39.6 -0.5 39.6 -1.9 39.3 -2.7C39 -3.5 38 -4.1 37.3 -4.1C36.7 -4.1 35.7 -3.4 35.4 -2.7C35.1 -1.9 35.1 -0.5 35.7 0.4C36.2 1.3 37.4 2.3 38.5 2.7C39.7 3.1 41.4 3.1 42.5 2.7C43.6 2.2 44.7 1.2 45.2 0.3C45.7 -0.6 45.7 -1.9 45.5 -2.6C45.2 -3.2 44.3 -3.8 43.8 -3.8C43.2 -3.8 42.3 -3.2 42.1 -2.6C41.9 -1.9 41.8 -0.6 42.3 0.2C42.8 1.1 44 2.2 45.1 2.6C46.2 3 47.9 3 49 2.6C50.1 2.2 51.3 1.1 51.8 0.3C52.4 -0.6 52.4 -2 52.1 -2.8C51.9 -3.5 50.9 -4.2 50.2 -4.2C49.6 -4.2 48.6 -3.5 48.3 -2.8C48.1 -2.1 48 -0.7 48.6 0.3C49.1 1.2 50.3 2.3 51.4 2.7C52.6 3.1 54.4 3.1 55.5 2.7C56.7 2.3 57.9 1.2 58.4 0.3C58.9 -0.7 58.9 -2.1 58.6 -2.8C58.3 -3.5 57.4 -4.2 56.7 -4.2C56.1 -4.2 55.1 -3.5 54.8 -2.8C54.5 -2.1 54.5 -0.7 55 0.3C55.6 1.2 56.8 2.3 57.9 2.7C59.1 3.1 60.8 3.1 62 2.7C63.1 2.3 64.3 1.2 64.9 0.3C65.4 -0.6 65.4 -2 65.1 -2.8C64.8 -3.5 63.8 -4.1 63.2 -4.1C62.6 -4.1 61.6 -3.4 61.4 -2.7C61.1 -2 61.1 -0.6 61.7 0.3C62.2 1.2 63.4 2.2 64.5 2.6C65.6 2.9 67.2 2.9 68.3 2.5C69.4 2.1 70.5 1.1 71 0.3C71.4 -0.6 71.4 -1.8 71.2 -2.4C71 -3 70.2 -3.5 69.7 -3.5C69.1 -3.5 68.3 -3 68.1 -2.4C67.9 -1.7 67.9 -0.5 68.4 0.3C68.9 1.1 70 2.2 71 2.5C72.1 2.9 73.7 2.9 74.8 2.6C75.9 2.2 77 1.2 77.5 0.4C78 -0.4 78.1 -1.7 77.8 -2.4C77.6 -3.1 76.7 -3.7 76.1 -3.7C75.6 -3.7 74.6 -3.1 74.4 -2.4C74.1 -1.7 74.2 -0.4 74.7 0.5C75.2 1.4 76.3 2.4 77.4 2.8C78.5 3.2 80.2 3.2 81.3 2.8C82.4 2.4 83.6 1.4 84.1 0.5C84.6 -0.3 84.6 -1.6 84.3 -2.3C84.1 -3 83.2 -3.6 82.6 -3.5C82 -3.5 81.1 -3 80.8 -2.3C80.6 -1.6 80.6 -0.3 81.1 0.6C81.6 1.5 82.7 2.7 83.8 3.1C85 3.5 86.7 3.5 87.9 3.2C89 2.8 90.3 1.7 90.8 0.7C91.3 -0.2 91.3 -1.6 91.1 -2.4C90.8 -3.1 89.7 -3.8 89.1 -3.8C88.4 -3.8 87.3 -3.2 87 -2.4C86.7 -1.6 86.6 -0.1 87.2 0.9C87.7 1.9 88.9 3.1 90.2 3.6C91.4 4 93.2 4.1 94.5 3.6C95.7 3.2 97 2 97.6 1C98.1 -0 98.1 -1.6 97.8 -2.4C97.4 -3.2 96.3 -4 95.5 -4C94.8 -4 93.6 -3.2 93.3 -2.4C92.9 -1.6 92.9 0 93.4 1.1C94 2.1 95.3 3.4 96.6 3.9C97.8 4.3 99.7 4.3 101 3.9C102.3 3.4 103.6 2.2 104.1 1.1C104.7 0.1 104.6 -1.4 104.3 -2.3C103.9 -3.1 102.8 -3.8 102 -3.8C101.3 -3.7 100.2 -3 99.8 -2.2C99.5 -1.4 99.5 0.2 100.1 1.2C100.6 2.2 101.9 3.4 103.1 3.8C104.3 4.2 106.2 4.2 107.3 3.7C108.5 3.3 109.7 2.1 110.2 1.2C110.7 0.3 110.4 -1.4 110.4 -1.9'/%3E%3Cpath id='b3' d='M-8 -3.4C-8.3 -3.2 -9.5 -2.8 -9.8 -2.1C-10 -1.4 -10 -0.1 -9.5 0.8C-9 1.6 -7.8 2.7 -6.7 3C-5.6 3.4 -3.9 3.4 -2.9 3C-1.8 2.6 -0.7 1.5 -0.2 0.7C0.3 -0.1 0.3 -1.4 0.1 -2.1C-0.1 -2.7 -1 -3.3 -1.5 -3.3C-2.1 -3.3 -2.9 -2.8 -3.1 -2.1C-3.4 -1.5 -3.4 -0.2 -2.9 0.6C-2.4 1.4 -1.3 2.5 -0.2 2.9C0.9 3.3 2.5 3.3 3.6 2.9C4.8 2.5 5.9 1.5 6.5 0.6C7 -0.3 7 -1.7 6.8 -2.4C6.5 -3.1 5.6 -3.8 4.9 -3.8C4.3 -3.8 3.4 -3.2 3.1 -2.4C2.9 -1.7 2.9 -0.4 3.4 0.5C3.9 1.4 5.1 2.5 6.2 2.8C7.3 3.2 9 3.2 10.1 2.8C11.2 2.4 12.4 1.3 12.9 0.4C13.4 -0.4 13.4 -1.8 13.1 -2.4C12.9 -3.1 12 -3.7 11.4 -3.7C10.8 -3.7 9.9 -3.2 9.7 -2.5C9.4 -1.8 9.4 -0.5 9.9 0.4C10.4 1.2 11.6 2.3 12.7 2.7C13.8 3.1 15.5 3.1 16.6 2.7C17.8 2.3 19 1.3 19.5 0.4C20 -0.5 20 -1.9 19.8 -2.7C19.5 -3.4 18.5 -4.1 17.9 -4.1C17.3 -4.1 16.3 -3.5 16 -2.7C15.7 -2 15.7 -0.6 16.2 0.3C16.7 1.2 17.9 2.4 19.1 2.8C20.2 3.2 22 3.2 23.2 2.8C24.3 2.4 25.5 1.2 26.1 0.3C26.6 -0.6 26.6 -2 26.3 -2.8C26 -3.5 25 -4.2 24.4 -4.2C23.7 -4.2 22.8 -3.5 22.5 -2.7C22.3 -2 22.3 -0.6 22.8 0.2C23.4 1.1 24.6 2.1 25.7 2.5C26.8 2.9 28.4 2.8 29.5 2.4C30.5 2 31.6 1 32.1 0.2C32.5 -0.7 32.5 -1.9 32.3 -2.5C32.1 -3.1 31.3 -3.5 30.8 -3.5C30.3 -3.5 29.6 -3 29.4 -2.4C29.3 -1.8 29.3 -0.6 29.8 0.1C30.3 0.9 31.3 1.8 32.3 2.1C33.3 2.4 34.8 2.4 35.8 2.1C36.8 1.8 37.8 0.9 38.3 0.1C38.8 -0.6 38.8 -1.8 38.7 -2.4C38.5 -3 37.8 -3.4 37.3 -3.5C36.8 -3.5 36 -3 35.8 -2.4C35.6 -1.8 35.6 -0.6 36 0.2C36.5 1 37.5 2.1 38.6 2.5C39.7 2.9 41.4 3 42.5 2.6C43.6 2.3 44.9 1.2 45.5 0.3C46 -0.6 46.1 -2 45.8 -2.8C45.5 -3.6 44.5 -4.4 43.8 -4.4C43.1 -4.4 42 -3.6 41.7 -2.8C41.4 -2 41.5 -0.6 42 0.4C42.6 1.3 43.8 2.4 45 2.8C46.1 3.2 47.9 3.2 49 2.7C50.1 2.3 51.2 1.2 51.7 0.4C52.2 -0.5 52.2 -1.8 51.9 -2.5C51.7 -3.1 50.8 -3.6 50.2 -3.6C49.7 -3.6 48.9 -3 48.7 -2.4C48.4 -1.7 48.5 -0.4 49 0.4C49.5 1.2 50.6 2.2 51.6 2.6C52.7 2.9 54.3 2.9 55.3 2.6C56.4 2.2 57.5 1.2 58 0.4C58.5 -0.4 58.5 -1.6 58.3 -2.2C58.1 -2.9 57.3 -3.4 56.7 -3.4C56.2 -3.4 55.3 -3 55.1 -2.3C54.8 -1.6 54.7 -0.3 55.2 0.6C55.7 1.5 56.8 2.6 57.9 3C59.1 3.5 60.8 3.6 62 3.2C63.2 2.8 64.5 1.7 65.1 0.7C65.6 -0.2 65.7 -1.8 65.4 -2.6C65 -3.4 63.9 -4.2 63.2 -4.2C62.5 -4.2 61.3 -3.4 61 -2.6C60.7 -1.7 60.7 -0.2 61.2 0.8C61.8 1.8 63.1 3 64.3 3.4C65.5 3.8 67.3 3.8 68.5 3.4C69.7 2.9 70.9 1.7 71.4 0.8C71.9 -0.1 71.8 -1.5 71.5 -2.2C71.2 -2.9 70.3 -3.4 69.7 -3.4C69 -3.4 68.1 -2.8 67.8 -2.1C67.6 -1.4 67.5 -0 68 0.9C68.5 1.8 69.7 3 70.8 3.4C72 3.8 73.8 3.9 75 3.5C76.2 3.1 77.4 2 78 1C78.5 0.1 78.5 -1.4 78.2 -2.2C77.9 -3 76.8 -3.7 76.1 -3.7C75.4 -3.7 74.4 -3 74.1 -2.2C73.7 -1.4 73.8 0.1 74.3 1.1C74.8 2.1 76.1 3.2 77.3 3.6C78.5 4 80.3 4 81.4 3.6C82.6 3.2 83.8 2 84.3 1.1C84.8 0.2 84.7 -1.2 84.4 -1.9C84.2 -2.6 83.2 -3.1 82.6 -3.1C82 -3.1 81.1 -2.5 80.8 -1.8C80.5 -1.1 80.5 0.3 81 1.2C81.5 2.1 82.7 3.2 83.8 3.6C85 4 86.7 4 87.9 3.6C89 3.2 90.2 2.1 90.7 1.2C91.3 0.3 91.3 -1.1 91 -1.8C90.7 -2.6 89.7 -3.2 89.1 -3.2C88.4 -3.2 87.5 -2.5 87.2 -1.8C86.9 -1 87 0.4 87.5 1.3C88 2.1 89.2 3.2 90.4 3.6C91.5 3.9 93.1 3.9 94.2 3.5C95.3 3.1 96.4 2.1 96.9 1.2C97.3 0.4 97.3 -0.8 97.1 -1.5C96.9 -2.1 96.1 -2.6 95.5 -2.6C95 -2.6 94.2 -2.1 94 -1.4C93.8 -0.8 93.7 0.4 94.2 1.3C94.7 2.1 95.8 3.1 96.9 3.5C98 3.9 99.6 4 100.7 3.6C101.8 3.2 103.1 2.2 103.6 1.3C104.1 0.4 104.2 -0.9 103.9 -1.7C103.6 -2.4 102.7 -3.1 102 -3.1C101.4 -3.1 100.3 -2.5 100.1 -1.8C99.8 -1 99.7 0.4 100.2 1.4C100.7 2.3 102 3.5 103.2 4C104.3 4.4 106.2 4.4 107.4 4C108.6 3.6 109.9 2.4 110.4 1.4C110.9 0.4 110.6 -1.3 110.6 -1.9'/%3E%3C/defs%3E%3Cg fill='none' stroke='%23000' stroke-width='.42' stroke-linecap='round' stroke-linejoin='round'%3E%3Cg%3E%3Cuse href='%23b1' x='5.0' y='10.98'/%3E%3Cuse href='%23b2' x='2.4' y='22.62'/%3E%3Cuse href='%23b3' x='6.4' y='34.26'/%3E%3Cuse href='%23b2' x='3.9' y='45.90'/%3E%3Cuse href='%23b1' x='7.2' y='57.54'/%3E%3Cuse href='%23b3' x='2.0' y='69.18'/%3E%3Cuse href='%23b2' x='5.9' y='-0.66'/%3E%3C/g%3E%3Cg transform='rotate(180 55 75)'%3E%3Cuse href='%23b1' x='5.0' y='10.98'/%3E%3Cuse href='%23b2' x='2.4' y='22.62'/%3E%3Cuse href='%23b3' x='6.4' y='34.26'/%3E%3Cuse href='%23b2' x='3.9' y='45.90'/%3E%3Cuse href='%23b1' x='7.2' y='57.54'/%3E%3Cuse href='%23b3' x='2.0' y='69.18'/%3E%3Cuse href='%23b2' x='5.9' y='-0.66'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E") center / 110cqw 150cqw no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 110 150'%3E%3Cdefs%3E%3Cpath id='b1' d='M-8 -3C-8.3 -2.8 -9.5 -2.4 -9.8 -1.7C-10 -1 -10 0.4 -9.4 1.2C-8.9 2.1 -7.8 3.1 -6.7 3.5C-5.6 3.8 -4 3.8 -2.9 3.4C-1.8 3.1 -0.7 2 -0.3 1.2C0.2 0.4 0.2 -0.8 -0 -1.4C-0.2 -2.1 -1 -2.5 -1.5 -2.5C-2 -2.5 -2.9 -2.1 -3.1 -1.5C-3.3 -0.8 -3.4 0.4 -2.9 1.3C-2.4 2.1 -1.3 3.2 -0.2 3.6C0.9 4 2.6 4.1 3.7 3.7C4.9 3.4 6.1 2.3 6.7 1.4C7.2 0.4 7.3 -1 7 -1.8C6.7 -2.6 5.6 -3.4 4.9 -3.4C4.2 -3.4 3.1 -2.7 2.8 -1.9C2.5 -1.1 2.5 0.4 3 1.4C3.5 2.4 4.8 3.6 6 4C7.3 4.5 9.1 4.5 10.3 4C11.5 3.6 12.8 2.4 13.3 1.4C13.8 0.4 13.8 -1.1 13.5 -1.9C13.2 -2.6 12.1 -3.3 11.4 -3.3C10.7 -3.3 9.7 -2.6 9.4 -1.8C9.1 -1 9.2 0.4 9.7 1.3C10.3 2.2 11.5 3.3 12.6 3.7C13.8 4.1 15.5 4 16.6 3.6C17.7 3.2 18.8 2.1 19.3 1.2C19.8 0.4 19.8 -0.9 19.5 -1.6C19.3 -2.2 18.4 -2.7 17.9 -2.7C17.3 -2.7 16.5 -2.2 16.3 -1.6C16 -0.9 16 0.3 16.5 1.2C17 2 18.1 3 19.2 3.4C20.3 3.8 21.9 3.8 23 3.5C24.2 3.1 25.3 2 25.8 1.2C26.4 0.3 26.4 -1.1 26.1 -1.8C25.9 -2.5 25 -3.1 24.4 -3.1C23.8 -3.1 22.8 -2.5 22.6 -1.8C22.3 -1.1 22.3 0.2 22.8 1.1C23.3 2 24.5 3.1 25.6 3.4C26.7 3.8 28.4 3.8 29.6 3.4C30.7 3 31.8 1.9 32.3 1C32.9 0.2 32.9 -1.2 32.6 -1.9C32.3 -2.6 31.4 -3.2 30.8 -3.2C30.2 -3.2 29.3 -2.6 29 -1.9C28.8 -1.3 28.8 0.1 29.3 1C29.8 1.9 30.9 3 32.1 3.4C33.2 3.8 34.9 3.8 36.1 3.4C37.2 3 38.4 1.9 39 0.9C39.5 0 39.5 -1.4 39.2 -2.2C38.9 -2.9 38 -3.6 37.3 -3.6C36.7 -3.6 35.6 -3 35.3 -2.2C35 -1.5 35 -0.1 35.5 0.9C36 1.8 37.3 3 38.4 3.4C39.6 3.8 41.4 3.8 42.6 3.4C43.8 3 45.1 1.8 45.6 0.8C46.2 -0.1 46.1 -1.6 45.8 -2.4C45.5 -3.2 44.4 -3.9 43.8 -3.9C43.1 -3.9 42.1 -3.2 41.8 -2.4C41.5 -1.6 41.6 -0.2 42.1 0.7C42.6 1.6 43.9 2.6 45 3C46.2 3.4 47.8 3.3 48.9 2.9C50 2.5 51.1 1.4 51.6 0.5C52 -0.3 52 -1.5 51.8 -2.1C51.6 -2.8 50.7 -3.2 50.2 -3.2C49.8 -3.2 49 -2.7 48.8 -2.1C48.6 -1.5 48.7 -0.3 49.2 0.4C49.7 1.2 50.7 2.1 51.7 2.4C52.7 2.7 54.2 2.7 55.2 2.4C56.2 2 57.3 1.1 57.8 0.3C58.2 -0.4 58.3 -1.6 58.1 -2.2C57.9 -2.8 57.2 -3.3 56.7 -3.3C56.2 -3.3 55.5 -2.9 55.2 -2.3C55 -1.7 55 -0.5 55.4 0.3C55.9 1.2 57 2.2 58 2.6C59.1 3 60.8 3.1 61.9 2.7C63.1 2.4 64.3 1.3 64.9 0.4C65.4 -0.5 65.5 -2 65.2 -2.8C64.9 -3.6 63.9 -4.3 63.2 -4.4C62.5 -4.4 61.4 -3.6 61.1 -2.9C60.8 -2.1 60.8 -0.6 61.4 0.4C61.9 1.3 63.2 2.4 64.4 2.8C65.5 3.2 67.3 3.2 68.5 2.8C69.6 2.3 70.8 1.2 71.3 0.3C71.8 -0.6 71.7 -2 71.5 -2.7C71.2 -3.4 70.3 -3.9 69.7 -3.9C69.1 -3.9 68.1 -3.4 67.9 -2.7C67.6 -2 67.6 -0.6 68.1 0.3C68.6 1.1 69.7 2.3 70.9 2.7C72 3.1 73.8 3.1 74.9 2.7C76.1 2.3 77.4 1.2 77.9 0.3C78.4 -0.7 78.4 -2.1 78.1 -2.9C77.9 -3.7 76.8 -4.4 76.1 -4.4C75.5 -4.4 74.4 -3.6 74.2 -2.8C73.9 -2.1 74 -0.7 74.5 0.2C75.1 1.1 76.3 2.2 77.4 2.5C78.5 2.9 80.2 2.8 81.3 2.4C82.3 2 83.4 1 83.8 0.2C84.3 -0.6 84.3 -1.8 84.1 -2.4C83.8 -3 83.1 -3.4 82.6 -3.4C82.1 -3.4 81.4 -3 81.2 -2.4C81 -1.8 81 -0.6 81.5 0.2C81.9 0.9 83 1.9 84 2.3C85.1 2.7 86.6 2.7 87.7 2.4C88.8 2 89.9 1.1 90.4 0.2C90.9 -0.6 91 -1.9 90.8 -2.6C90.6 -3.3 89.7 -3.9 89.1 -3.9C88.5 -3.9 87.5 -3.3 87.3 -2.6C87 -1.9 87 -0.6 87.5 0.3C88 1.2 89.2 2.4 90.3 2.8C91.4 3.2 93.2 3.2 94.3 2.8C95.5 2.4 96.7 1.3 97.3 0.4C97.8 -0.5 97.8 -2 97.5 -2.7C97.2 -3.5 96.2 -4.2 95.5 -4.1C94.9 -4.1 93.9 -3.4 93.6 -2.7C93.3 -1.9 93.4 -0.5 93.9 0.5C94.4 1.4 95.7 2.4 96.8 2.8C97.9 3.2 99.6 3.2 100.7 2.8C101.8 2.4 102.9 1.3 103.4 0.5C103.9 -0.4 103.9 -1.7 103.6 -2.3C103.4 -3 102.6 -3.4 102 -3.4C101.5 -3.4 100.6 -3 100.4 -2.3C100.1 -1.6 100.1 -0.3 100.5 0.5C101 1.4 102.1 2.6 103.3 3C104.4 3.4 106.1 3.5 107.3 3.1C108.5 2.7 109.8 1.6 110.3 0.7C110.9 -0.3 110.6 -2 110.6 -2.6'/%3E%3Cpath id='b2' d='M-8 -3C-8.3 -2.8 -9.6 -2.5 -9.9 -1.7C-10.2 -1 -10.2 0.4 -9.7 1.3C-9.2 2.2 -8 3.4 -6.8 3.8C-5.7 4.3 -3.9 4.3 -2.6 3.9C-1.4 3.5 -0.1 2.3 0.4 1.3C1 0.3 1 -1.2 0.6 -2C0.3 -2.9 -0.8 -3.6 -1.5 -3.6C-2.3 -3.6 -3.4 -2.9 -3.8 -2.1C-4.1 -1.3 -4.2 0.3 -3.6 1.3C-3.1 2.3 -1.8 3.6 -0.5 4C0.7 4.5 2.7 4.5 3.9 4C5.2 3.5 6.5 2.3 7 1.2C7.6 0.2 7.5 -1.4 7.2 -2.2C6.8 -3 5.7 -3.7 4.9 -3.7C4.2 -3.7 3.1 -2.9 2.8 -2.1C2.5 -1.3 2.6 0.2 3.2 1.1C3.7 2 5 3.1 6.2 3.5C7.3 3.8 9 3.7 10.1 3.3C11.2 2.9 12.3 1.8 12.8 0.9C13.2 0.1 13.2 -1.1 12.9 -1.8C12.7 -2.4 11.9 -2.8 11.4 -2.8C10.9 -2.8 10.2 -2.3 10 -1.7C9.8 -1.1 9.9 0 10.4 0.8C10.8 1.5 11.9 2.5 12.9 2.8C13.9 3.1 15.4 3.1 16.4 2.8C17.4 2.4 18.5 1.5 19 0.7C19.4 -0.1 19.5 -1.2 19.3 -1.8C19.1 -2.5 18.4 -3 17.9 -3C17.4 -3 16.6 -2.6 16.4 -2C16.1 -1.4 16.1 -0.1 16.6 0.7C17 1.5 18.1 2.6 19.2 3C20.3 3.4 22 3.5 23.1 3.1C24.3 2.7 25.5 1.6 26.1 0.7C26.6 -0.2 26.7 -1.7 26.4 -2.5C26.1 -3.3 25 -4 24.4 -4C23.7 -4.1 22.6 -3.4 22.2 -2.6C21.9 -1.8 21.9 -0.3 22.4 0.7C23 1.6 24.2 2.8 25.5 3.3C26.7 3.7 28.5 3.7 29.7 3.2C30.9 2.8 32.2 1.6 32.7 0.6C33.2 -0.4 33.2 -1.9 32.9 -2.6C32.6 -3.4 31.5 -4.1 30.8 -4.1C30.2 -4.1 29.1 -3.4 28.8 -2.7C28.5 -1.9 28.5 -0.4 29 0.5C29.5 1.5 30.8 2.6 32 3C33.2 3.4 35 3.4 36.1 3C37.3 2.6 38.6 1.4 39.1 0.5C39.6 -0.5 39.6 -1.9 39.3 -2.7C39 -3.5 38 -4.1 37.3 -4.1C36.7 -4.1 35.7 -3.4 35.4 -2.7C35.1 -1.9 35.1 -0.5 35.7 0.4C36.2 1.3 37.4 2.3 38.5 2.7C39.7 3.1 41.4 3.1 42.5 2.7C43.6 2.2 44.7 1.2 45.2 0.3C45.7 -0.6 45.7 -1.9 45.5 -2.6C45.2 -3.2 44.3 -3.8 43.8 -3.8C43.2 -3.8 42.3 -3.2 42.1 -2.6C41.9 -1.9 41.8 -0.6 42.3 0.2C42.8 1.1 44 2.2 45.1 2.6C46.2 3 47.9 3 49 2.6C50.1 2.2 51.3 1.1 51.8 0.3C52.4 -0.6 52.4 -2 52.1 -2.8C51.9 -3.5 50.9 -4.2 50.2 -4.2C49.6 -4.2 48.6 -3.5 48.3 -2.8C48.1 -2.1 48 -0.7 48.6 0.3C49.1 1.2 50.3 2.3 51.4 2.7C52.6 3.1 54.4 3.1 55.5 2.7C56.7 2.3 57.9 1.2 58.4 0.3C58.9 -0.7 58.9 -2.1 58.6 -2.8C58.3 -3.5 57.4 -4.2 56.7 -4.2C56.1 -4.2 55.1 -3.5 54.8 -2.8C54.5 -2.1 54.5 -0.7 55 0.3C55.6 1.2 56.8 2.3 57.9 2.7C59.1 3.1 60.8 3.1 62 2.7C63.1 2.3 64.3 1.2 64.9 0.3C65.4 -0.6 65.4 -2 65.1 -2.8C64.8 -3.5 63.8 -4.1 63.2 -4.1C62.6 -4.1 61.6 -3.4 61.4 -2.7C61.1 -2 61.1 -0.6 61.7 0.3C62.2 1.2 63.4 2.2 64.5 2.6C65.6 2.9 67.2 2.9 68.3 2.5C69.4 2.1 70.5 1.1 71 0.3C71.4 -0.6 71.4 -1.8 71.2 -2.4C71 -3 70.2 -3.5 69.7 -3.5C69.1 -3.5 68.3 -3 68.1 -2.4C67.9 -1.7 67.9 -0.5 68.4 0.3C68.9 1.1 70 2.2 71 2.5C72.1 2.9 73.7 2.9 74.8 2.6C75.9 2.2 77 1.2 77.5 0.4C78 -0.4 78.1 -1.7 77.8 -2.4C77.6 -3.1 76.7 -3.7 76.1 -3.7C75.6 -3.7 74.6 -3.1 74.4 -2.4C74.1 -1.7 74.2 -0.4 74.7 0.5C75.2 1.4 76.3 2.4 77.4 2.8C78.5 3.2 80.2 3.2 81.3 2.8C82.4 2.4 83.6 1.4 84.1 0.5C84.6 -0.3 84.6 -1.6 84.3 -2.3C84.1 -3 83.2 -3.6 82.6 -3.5C82 -3.5 81.1 -3 80.8 -2.3C80.6 -1.6 80.6 -0.3 81.1 0.6C81.6 1.5 82.7 2.7 83.8 3.1C85 3.5 86.7 3.5 87.9 3.2C89 2.8 90.3 1.7 90.8 0.7C91.3 -0.2 91.3 -1.6 91.1 -2.4C90.8 -3.1 89.7 -3.8 89.1 -3.8C88.4 -3.8 87.3 -3.2 87 -2.4C86.7 -1.6 86.6 -0.1 87.2 0.9C87.7 1.9 88.9 3.1 90.2 3.6C91.4 4 93.2 4.1 94.5 3.6C95.7 3.2 97 2 97.6 1C98.1 -0 98.1 -1.6 97.8 -2.4C97.4 -3.2 96.3 -4 95.5 -4C94.8 -4 93.6 -3.2 93.3 -2.4C92.9 -1.6 92.9 0 93.4 1.1C94 2.1 95.3 3.4 96.6 3.9C97.8 4.3 99.7 4.3 101 3.9C102.3 3.4 103.6 2.2 104.1 1.1C104.7 0.1 104.6 -1.4 104.3 -2.3C103.9 -3.1 102.8 -3.8 102 -3.8C101.3 -3.7 100.2 -3 99.8 -2.2C99.5 -1.4 99.5 0.2 100.1 1.2C100.6 2.2 101.9 3.4 103.1 3.8C104.3 4.2 106.2 4.2 107.3 3.7C108.5 3.3 109.7 2.1 110.2 1.2C110.7 0.3 110.4 -1.4 110.4 -1.9'/%3E%3Cpath id='b3' d='M-8 -3.4C-8.3 -3.2 -9.5 -2.8 -9.8 -2.1C-10 -1.4 -10 -0.1 -9.5 0.8C-9 1.6 -7.8 2.7 -6.7 3C-5.6 3.4 -3.9 3.4 -2.9 3C-1.8 2.6 -0.7 1.5 -0.2 0.7C0.3 -0.1 0.3 -1.4 0.1 -2.1C-0.1 -2.7 -1 -3.3 -1.5 -3.3C-2.1 -3.3 -2.9 -2.8 -3.1 -2.1C-3.4 -1.5 -3.4 -0.2 -2.9 0.6C-2.4 1.4 -1.3 2.5 -0.2 2.9C0.9 3.3 2.5 3.3 3.6 2.9C4.8 2.5 5.9 1.5 6.5 0.6C7 -0.3 7 -1.7 6.8 -2.4C6.5 -3.1 5.6 -3.8 4.9 -3.8C4.3 -3.8 3.4 -3.2 3.1 -2.4C2.9 -1.7 2.9 -0.4 3.4 0.5C3.9 1.4 5.1 2.5 6.2 2.8C7.3 3.2 9 3.2 10.1 2.8C11.2 2.4 12.4 1.3 12.9 0.4C13.4 -0.4 13.4 -1.8 13.1 -2.4C12.9 -3.1 12 -3.7 11.4 -3.7C10.8 -3.7 9.9 -3.2 9.7 -2.5C9.4 -1.8 9.4 -0.5 9.9 0.4C10.4 1.2 11.6 2.3 12.7 2.7C13.8 3.1 15.5 3.1 16.6 2.7C17.8 2.3 19 1.3 19.5 0.4C20 -0.5 20 -1.9 19.8 -2.7C19.5 -3.4 18.5 -4.1 17.9 -4.1C17.3 -4.1 16.3 -3.5 16 -2.7C15.7 -2 15.7 -0.6 16.2 0.3C16.7 1.2 17.9 2.4 19.1 2.8C20.2 3.2 22 3.2 23.2 2.8C24.3 2.4 25.5 1.2 26.1 0.3C26.6 -0.6 26.6 -2 26.3 -2.8C26 -3.5 25 -4.2 24.4 -4.2C23.7 -4.2 22.8 -3.5 22.5 -2.7C22.3 -2 22.3 -0.6 22.8 0.2C23.4 1.1 24.6 2.1 25.7 2.5C26.8 2.9 28.4 2.8 29.5 2.4C30.5 2 31.6 1 32.1 0.2C32.5 -0.7 32.5 -1.9 32.3 -2.5C32.1 -3.1 31.3 -3.5 30.8 -3.5C30.3 -3.5 29.6 -3 29.4 -2.4C29.3 -1.8 29.3 -0.6 29.8 0.1C30.3 0.9 31.3 1.8 32.3 2.1C33.3 2.4 34.8 2.4 35.8 2.1C36.8 1.8 37.8 0.9 38.3 0.1C38.8 -0.6 38.8 -1.8 38.7 -2.4C38.5 -3 37.8 -3.4 37.3 -3.5C36.8 -3.5 36 -3 35.8 -2.4C35.6 -1.8 35.6 -0.6 36 0.2C36.5 1 37.5 2.1 38.6 2.5C39.7 2.9 41.4 3 42.5 2.6C43.6 2.3 44.9 1.2 45.5 0.3C46 -0.6 46.1 -2 45.8 -2.8C45.5 -3.6 44.5 -4.4 43.8 -4.4C43.1 -4.4 42 -3.6 41.7 -2.8C41.4 -2 41.5 -0.6 42 0.4C42.6 1.3 43.8 2.4 45 2.8C46.1 3.2 47.9 3.2 49 2.7C50.1 2.3 51.2 1.2 51.7 0.4C52.2 -0.5 52.2 -1.8 51.9 -2.5C51.7 -3.1 50.8 -3.6 50.2 -3.6C49.7 -3.6 48.9 -3 48.7 -2.4C48.4 -1.7 48.5 -0.4 49 0.4C49.5 1.2 50.6 2.2 51.6 2.6C52.7 2.9 54.3 2.9 55.3 2.6C56.4 2.2 57.5 1.2 58 0.4C58.5 -0.4 58.5 -1.6 58.3 -2.2C58.1 -2.9 57.3 -3.4 56.7 -3.4C56.2 -3.4 55.3 -3 55.1 -2.3C54.8 -1.6 54.7 -0.3 55.2 0.6C55.7 1.5 56.8 2.6 57.9 3C59.1 3.5 60.8 3.6 62 3.2C63.2 2.8 64.5 1.7 65.1 0.7C65.6 -0.2 65.7 -1.8 65.4 -2.6C65 -3.4 63.9 -4.2 63.2 -4.2C62.5 -4.2 61.3 -3.4 61 -2.6C60.7 -1.7 60.7 -0.2 61.2 0.8C61.8 1.8 63.1 3 64.3 3.4C65.5 3.8 67.3 3.8 68.5 3.4C69.7 2.9 70.9 1.7 71.4 0.8C71.9 -0.1 71.8 -1.5 71.5 -2.2C71.2 -2.9 70.3 -3.4 69.7 -3.4C69 -3.4 68.1 -2.8 67.8 -2.1C67.6 -1.4 67.5 -0 68 0.9C68.5 1.8 69.7 3 70.8 3.4C72 3.8 73.8 3.9 75 3.5C76.2 3.1 77.4 2 78 1C78.5 0.1 78.5 -1.4 78.2 -2.2C77.9 -3 76.8 -3.7 76.1 -3.7C75.4 -3.7 74.4 -3 74.1 -2.2C73.7 -1.4 73.8 0.1 74.3 1.1C74.8 2.1 76.1 3.2 77.3 3.6C78.5 4 80.3 4 81.4 3.6C82.6 3.2 83.8 2 84.3 1.1C84.8 0.2 84.7 -1.2 84.4 -1.9C84.2 -2.6 83.2 -3.1 82.6 -3.1C82 -3.1 81.1 -2.5 80.8 -1.8C80.5 -1.1 80.5 0.3 81 1.2C81.5 2.1 82.7 3.2 83.8 3.6C85 4 86.7 4 87.9 3.6C89 3.2 90.2 2.1 90.7 1.2C91.3 0.3 91.3 -1.1 91 -1.8C90.7 -2.6 89.7 -3.2 89.1 -3.2C88.4 -3.2 87.5 -2.5 87.2 -1.8C86.9 -1 87 0.4 87.5 1.3C88 2.1 89.2 3.2 90.4 3.6C91.5 3.9 93.1 3.9 94.2 3.5C95.3 3.1 96.4 2.1 96.9 1.2C97.3 0.4 97.3 -0.8 97.1 -1.5C96.9 -2.1 96.1 -2.6 95.5 -2.6C95 -2.6 94.2 -2.1 94 -1.4C93.8 -0.8 93.7 0.4 94.2 1.3C94.7 2.1 95.8 3.1 96.9 3.5C98 3.9 99.6 4 100.7 3.6C101.8 3.2 103.1 2.2 103.6 1.3C104.1 0.4 104.2 -0.9 103.9 -1.7C103.6 -2.4 102.7 -3.1 102 -3.1C101.4 -3.1 100.3 -2.5 100.1 -1.8C99.8 -1 99.7 0.4 100.2 1.4C100.7 2.3 102 3.5 103.2 4C104.3 4.4 106.2 4.4 107.4 4C108.6 3.6 109.9 2.4 110.4 1.4C110.9 0.4 110.6 -1.3 110.6 -1.9'/%3E%3C/defs%3E%3Cg fill='none' stroke='%23000' stroke-width='.42' stroke-linecap='round' stroke-linejoin='round'%3E%3Cg%3E%3Cuse href='%23b1' x='5.0' y='10.98'/%3E%3Cuse href='%23b2' x='2.4' y='22.62'/%3E%3Cuse href='%23b3' x='6.4' y='34.26'/%3E%3Cuse href='%23b2' x='3.9' y='45.90'/%3E%3Cuse href='%23b1' x='7.2' y='57.54'/%3E%3Cuse href='%23b3' x='2.0' y='69.18'/%3E%3Cuse href='%23b2' x='5.9' y='-0.66'/%3E%3C/g%3E%3Cg transform='rotate(180 55 75)'%3E%3Cuse href='%23b1' x='5.0' y='10.98'/%3E%3Cuse href='%23b2' x='2.4' y='22.62'/%3E%3Cuse href='%23b3' x='6.4' y='34.26'/%3E%3Cuse href='%23b2' x='3.9' y='45.90'/%3E%3Cuse href='%23b1' x='7.2' y='57.54'/%3E%3Cuse href='%23b3' x='2.0' y='69.18'/%3E%3Cuse href='%23b2' x='5.9' y='-0.66'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E") center / 110cqw 150cqw no-repeat;
+}
+
+.carta--reverso .carta__trama { color: var(--servilleta); }
+
+.reverso__logo {
+  position: absolute;
+  left: 17cqw;
+  width: 66cqw;
+}
+
+.reverso__logo--arriba { top: 17cqw; transform: rotate(-4deg); }
+.reverso__logo--abajo  { bottom: 17cqw; transform: rotate(176deg); }
+
+/* ---------- Reglas ---------- */
+
+.reglas__titulo {
+  display: block;
+  margin: 1.6cqw 0 0;
+  font-weight: 400;
+  font-family: var(--mano-a);
+  font-size: 8cqw;
+  line-height: 1;
+  -webkit-text-stroke: .014em currentColor;
+}
+
+.reglas__lista {
+  margin: 0;
+  padding: 3.4cqw 0 2cqw;
+  list-style: none;
+  display: grid;
+  align-content: center;
+  gap: 2.9cqw;
+  font-family: var(--mano-b);
+  font-size: 5.7cqw;
+  line-height: 1.1;
+}
+
+.reglas__lista li {
+  display: grid;
+  grid-template-columns: 7cqw minmax(0, 1fr);
+  gap: 2.2cqw;
+  align-items: start;
+  -webkit-text-stroke: .012em currentColor;
+}
+
+.reglas__num {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 7cqw;
+  height: 7cqw;
+  margin-top: -.6cqw;
+  font-family: var(--mano-a);
+  font-size: 4.6cqw;
+  line-height: 1;
+}
+
+.reglas__num svg {
+  position: absolute;
+  inset: -.6cqw;
+  width: calc(100% + 1.2cqw);
+  height: calc(100% + 1.2cqw);
+  stroke-width: 4.4;
+}
+
+.reglas__nowrap { white-space: nowrap; }
+
+.reglas__marca { position: relative; }
+
+.reglas__marca svg {
+  position: absolute;
+  left: -1.2cqw;
+  top: 1.1cqw;
+  width: calc(100% + 2.4cqw);
+  height: calc(100% - 1cqw);
+  stroke-width: 3.6;
+}
+
+.reglas__subraya { position: relative; white-space: nowrap; }
+
+.reglas__subraya svg {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1.5cqw;
+  width: 100%;
+  height: 1.8cqw;
+  stroke-width: 2.6;
+}
+
+.reglas__cierre {
+  margin: 0 0 3.8cqw;
+  font-family: var(--mano-a);
+  font-size: 4.9cqw;
+  line-height: 1.1;
+  transform: rotate(-1.5deg);
+  transform-origin: left center;
+  -webkit-text-stroke: .012em currentColor;
+}
+
+.carta--reglas .carta__cara { grid-template-rows: auto minmax(0, 1fr) auto auto; }
+
+/* ---------- Portada ---------- */
+
+.carta--portada .carta__cara {
+  grid-template-rows: minmax(0, 1fr) auto auto;
+  justify-items: center;
+}
+
+.portada__logo {
+  align-self: center;
+  width: 80cqw;
+  margin-top: 6cqw;
+}
+
+.portada__papeles {
+  display: flex;
+  justify-content: center;
+  gap: 2.4cqw;
+  margin: 0 0 7cqw;
+}
+
+.portada__papeles i {
+  display: block;
+  width: 6.4cqw;
+  height: 8.4cqw;
+  border-radius: .5cqw;
+  background: var(--c);
+  transform: rotate(var(--r));
+}
+
+.carta--portada .carta__pie { justify-self: stretch; }
+
+/* ---------- Logotipo (escala con su contenedor) ---------- */
+
+.logo {
+  container-type: inline-size;
+  width: 100%;
+  color: var(--tinta);
+  text-align: center;
+}
+
+.logo--claro { color: var(--servilleta); }
+
+.logo__marca {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 2cqw 0 6cqw;
+  line-height: 1;
+}
+
+.logo__a,
+.logo__d {
+  display: block;
+  font-weight: 400;
+}
+
+.logo__a {
+  font-family: var(--mano-a);
+  font-size: 47cqw;
+  transform: translateY(-3cqw) rotate(-4deg);
+  -webkit-text-stroke: .012em currentColor;
+}
+
+.logo__d {
+  font-family: var(--mano-b);
+  font-size: 56cqw;
+  transform: translateY(4cqw) rotate(4deg);
+  -webkit-text-stroke: .01em currentColor;
+}
+
+/* La «o» es la protagonista: más trazo que las letras y su propio aire. */
+.logo__o {
+  flex: none;
+  width: 31cqw;
+  height: 31cqw;
+  margin: 0 .6cqw;
+  stroke-width: 6.4;
+  transform: translateY(5.4cqw);
+}
+
+.logo__descriptor {
+  margin: 0;
+  font-family: var(--imprenta);
+  font-stretch: 70%;
+  font-weight: 650;
+  font-size: 5.4cqw;
+  line-height: 1.2;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+}
+
+.logo__lema {
+  position: relative;
+  display: inline-block;
+  margin: 4.6cqw 0 0;
+  font-family: var(--mano-b);
+  font-size: 10cqw;
+  line-height: 1;
+  -webkit-text-stroke: .012em currentColor;
+}
+
+.logo__lema svg {
+  position: absolute;
+  left: -1cqw;
+  bottom: -3cqw;
+  width: calc(100% + 3cqw);
+  height: 3.4cqw;
+}
+
+/* Ícono de app: la «o» repasada; aguanta 16 px. */
+.logo--icono {
+  container-type: normal;
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 22.5%;
+  background: var(--tinta);
+  color: var(--servilleta);
+}
+
+.logo--icono svg {
+  position: absolute;
+  inset: 8%;
+  width: 84%;
+  height: 84%;
+  stroke-width: 5.6;
+}
+
+/* ---------- Sangrado: el papel crece 5cqw por lado; la cara no se mueve ---------- */
+
+.carta--sangrado { border-radius: 0; --sangrado: 5cqw; }
+
+.carta--sangrado .carta__papel {
+  inset: -5cqw;
+  border-radius: 0;
+}
+
+/* ---------- Ahorro: fondo blanco y tinta mínima para imprimir en casa ---------- */
+
+.carta--ahorro .carta__papel { background-color: #fff; }
+.carta--ahorro .carta__papel::before { content: none; }
+
+/* El color de la categoría sobrevive en una franja arriba (se va al sangrado). */
+.carta--ahorro .carta__papel::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: calc(4.4cqw + var(--sangrado, 0cqw));
+  background: var(--papel);
+}
+
+.carta--ahorro.carta--blanco .carta__papel::after,
+.carta--ahorro.carta--propia .carta__papel::after,
+.carta--ahorro.carta--reglas .carta__papel::after,
+.carta--ahorro.carta--portada .carta__papel::after,
+.carta--ahorro.carta--reverso .carta__papel::after { content: none; }
+
+/* El reverso en casa: logotipo en azul pluma y trama apenas visible. */
+.carta--ahorro.carta--reverso { color: var(--tinta); }
+.carta--ahorro.carta--reverso .carta__trama { color: var(--tinta); opacity: .1; }
+.carta--ahorro .logo--claro { color: var(--tinta); }
+
+/* css/app.css */
+/* =====================================================================
+   A o D · Juego digital
+   La pantalla es la carta. Todo lo demás es mesa: tinta azul pluma sobre
+   mantel, letra a mano para lo que se dice y la imprenta del pie de las
+   cartas para lo que se lee de reojo.
+   Requiere css/tokens.css y css/carta.css.
+   ===================================================================== */
+
+:root {
+  /* La hoja (paneles) va un tono sobre la mesa; cambia con el tema. */
+  --hoja: var(--servilleta);
+  --hoja-sombra: rgba(23, 30, 90, .28);
+  --telon: rgba(20, 24, 56, .42);
+  --borde-mano: 15px 19px 14px 20px / 19px 14px 20px 15px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --hoja: #1D2252;
+    --hoja-sombra: rgba(0, 0, 0, .55);
+    --telon: rgba(4, 6, 20, .62);
+  }
+}
+
+:root[data-theme="dark"] {
+  --hoja: #1D2252;
+  --hoja-sombra: rgba(0, 0, 0, .55);
+  --telon: rgba(4, 6, 20, .62);
+}
+
+html,
+body {
+  height: 100%;
+}
+
+html {
+  background-color: var(--mesa);
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  overflow-x: hidden;
+  color: var(--mesa-texto);
+  font-family: var(--imprenta);
+  font-size: 16px;
+  line-height: 1.4;
+  background-color: var(--mesa);
+  /* Mantel de cuaderno: la misma retícula de puntos del muestrario. */
+  background-image: radial-gradient(circle at 1px 1px, var(--mesa-linea) 1px, transparent 1.6px);
+  background-size: 22px 22px;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.app,
+.app *,
+.hoja,
+.hoja * {
+  box-sizing: border-box;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+.oculto {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+:focus-visible {
+  outline: 3px solid var(--mesa-texto);
+  outline-offset: 3px;
+}
+
+/* ---------- Armazón: cabeza, mesa, fila de prueba, mando, menú ---------- */
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 460px;
+  padding-top: max(6px, env(safe-area-inset-top, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-bottom: max(10px, env(safe-area-inset-bottom, 0px));
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+}
+
+.cabeza,
+.pie,
+.mando,
+.menu {
+  flex: none;
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.cabeza {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+}
+
+.cabeza__logo {
+  width: 62px;
+}
+
+.cabeza__logo .logo {
+  color: var(--mesa-texto);
+}
+
+.cabeza__lado {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.cuenta {
+  margin: 0;
+  font-family: var(--mano-b);
+  font-size: 23px;
+  line-height: 1;
+  color: var(--mesa-tenue);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.chip {
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1.5px dashed var(--mesa-linea);
+  border-radius: 999px;
+  background: none;
+  color: inherit;
+  font-family: var(--imprenta);
+  font-stretch: 70%;
+  font-weight: 650;
+  font-size: 12px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+/* ---------- La mesa y la carta ---------- */
+
+.mesa {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.escenario {
+  flex: 1 1 auto;
+  min-height: 200px;
+  display: grid;
+  place-items: center;
+  container-type: size;
+  touch-action: pan-y pinch-zoom;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* La carta lo más grande posible: ancho = mínimo entre el ancho disponible y
+   el alto disponible × 5/7. Se guarda un margen para el montón girado y la
+   sombra, que asoman más allá de la carta. */
+.hueco {
+  position: relative;
+  width: min(100%, 300px);
+  width: min(calc(100cqw - 14px), calc((100cqh - 44px) * 5 / 7));
+  aspect-ratio: 5 / 7;
+  cursor: pointer;
+}
+
+.hueco[data-estado="fin"] {
+  cursor: default;
+}
+
+.naipe {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  backface-visibility: hidden;
+}
+
+.naipe--sale {
+  z-index: 2;
+  pointer-events: none;
+}
+
+.naipe .carta {
+  box-shadow: 0 1px 1px rgba(23, 30, 90, .12), 0 18px 32px -16px var(--mesa-sombra);
+}
+
+/* El resto del mazo, boca abajo, asoma debajo de la carta. */
+.monton {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.monton i {
+  display: none;
+  position: absolute;
+  inset: 0;
+  border-radius: 5% / 3.5714%;
+  background: var(--tinta);
+  box-shadow: inset 0 0 0 1px rgba(253, 253, 250, .1), 0 12px 26px -16px var(--mesa-sombra);
+}
+
+.monton i:nth-child(1) { transform: translate(1.8%, 1.2%) rotate(2.4deg); }
+.monton i:nth-child(2) { transform: translate(-1.4%, 1.8%) rotate(-1.9deg); }
+
+.monton[data-capas="1"] i:nth-child(1),
+.monton[data-capas="2"] i {
+  display: block;
+}
+
+/* Se acabó el mazo: queda el hueco donde estaba, punteado. */
+.hueco[data-estado="fin"]::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 2px dashed var(--mesa-linea);
+  border-radius: 5% / 3.5714%;
+}
+
+.naipe--fin {
+  display: grid;
+  place-items: center;
+  container-type: inline-size;
+}
+
+.fin {
+  padding: 0 12cqw;
+  text-align: center;
+}
+
+.fin__titulo {
+  margin: 0;
+  text-wrap: balance;
+  font-family: var(--mano-a);
+  font-size: 10.5cqw;
+  line-height: 1.05;
+  -webkit-text-stroke: .012em currentColor;
+}
+
+.fin__texto {
+  margin: 4cqw 0 0;
+  text-wrap: balance;
+  font-family: var(--mano-b);
+  font-size: 8cqw;
+  line-height: 1.1;
+  color: var(--mesa-tenue);
+}
+
+/* ---------- Botones ---------- */
+
+.boton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 48px;
+  min-width: 44px;
+  padding: 0 18px;
+  border: 2px solid var(--mesa-linea);
+  border-radius: var(--borde-mano);
+  background: none;
+  color: inherit;
+  font-family: var(--imprenta);
+  font-stretch: 72%;
+  font-weight: 650;
+  font-size: 13.5px;
+  line-height: 1.1;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+  text-align: center;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: background-color .15s, border-color .15s, transform .1s;
+}
+
+.boton:hover {
+  border-color: currentColor;
+}
+
+.boton:active {
+  transform: translateY(1px) scale(.985);
+}
+
+.boton--principal {
+  border-color: transparent;
+  background: var(--mesa-texto);
+  color: var(--mesa);
+  font-family: var(--mano-a);
+  font-stretch: normal;
+  font-weight: 400;
+  font-size: 21px;
+  letter-spacing: 0;
+  text-transform: none;
+  -webkit-text-stroke: .012em currentColor;
+}
+
+.boton--principal:hover {
+  border-color: transparent;
+}
+
+.boton--compacto {
+  font-size: 19px;
+}
+
+.boton--chico {
+  min-height: 44px;
+  padding: 0 14px;
+  font-size: 12.5px;
+}
+
+.boton--fuerte {
+  border-color: currentColor;
+}
+
+.boton[aria-disabled="true"] {
+  opacity: .38;
+  cursor: default;
+}
+
+.boton[aria-disabled="true"]:hover {
+  border-color: var(--mesa-linea);
+}
+
+.boton[aria-disabled="true"]:active {
+  transform: none;
+}
+
+.icono {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  overflow: visible;
+}
+
+.icono--trazo {
+  stroke-width: 7.5;
+}
+
+.enlace {
+  display: inline;
+  min-height: 44px;
+  padding: 10px 2px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-weight: 650;
+  text-decoration: underline;
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+/* ---------- Mando: anterior y siguiente, al alcance del pulgar ---------- */
+
+.mando {
+  display: flex;
+  gap: 10px;
+  padding-top: 10px;
+}
+
+.boton--anterior {
+  flex: none;
+}
+
+.mando .boton--principal {
+  flex: 1 1 auto;
+  min-height: 56px;
+  padding: 0 14px;
+  white-space: nowrap;
+}
+
+/* En los teléfonos más angostos la flecha estorba: el texto ya lo dice. */
+@media (max-width: 379px) {
+  .mando .icono--sigue {
+    display: none;
+  }
+}
+
+.app[data-vista="inicio"] .boton--anterior {
+  display: none;
+}
+
+.icono--baraja,
+.boton--barajar .icono--sigue {
+  display: none;
+}
+
+.boton--barajar .icono--baraja {
+  display: block;
+}
+
+.menu {
+  display: flex;
+  justify-content: space-around;
+  gap: 2px;
+  padding-top: 6px;
+}
+
+.menu__boton {
+  flex: 0 1 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-width: 0;
+  min-height: 48px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 12px;
+  background: none;
+  color: inherit;
+  font-family: var(--imprenta);
+  font-stretch: 70%;
+  font-weight: 650;
+  font-size: 12.5px;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.menu__boton:hover span {
+  text-decoration: underline;
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 4px;
+}
+
+.menu__boton .icono {
+  width: 20px;
+  height: 20px;
+}
+
+/* ---------- Modo prueba: tres veredictos bajo la carta ---------- */
+
+.pie {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 56px;
+  padding-top: 8px;
+}
+
+.veredictos {
+  display: flex;
+  gap: 6px;
+  width: 100%;
+}
+
+.veredicto-boton {
+  flex: 1 1 0;
+  min-height: 48px;
+  min-width: 0;
+  padding: 0 4px;
+  border: 1.5px dashed var(--mesa-linea);
+  border-radius: var(--borde-mano);
+  background: none;
+  color: inherit;
+  font-family: var(--mano-b);
+  font-size: 21px;
+  line-height: 1;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.veredicto-boton > span {
+  position: relative;
+  display: inline-block;
+  padding: 4px 6px;
+}
+
+/* La elegida se encierra a pluma, como «¿POR QUÉ?» en las reglas. */
+.veredicto-boton .trazo {
+  position: absolute;
+  inset: -3px -8px -1px;
+  width: calc(100% + 16px);
+  height: calc(100% + 4px);
+  stroke-width: 2.4;
+  opacity: 0;
+}
+
+.veredicto-boton[aria-pressed="true"] {
+  border-style: solid;
+  border-color: currentColor;
+}
+
+.veredicto-boton[aria-pressed="true"] .trazo {
+  opacity: 1;
+}
+
+.fin-prueba {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+/* ---------- Hojas (Mazo, Tus dilemas, Cómo se juega, Resultados) ---------- */
+
+.hoja {
+  width: 100%;
+  max-width: min(520px, 100%);
+  max-height: calc(100% - max(20px, env(safe-area-inset-top, 0px)));
+  margin: auto auto 0;
+  padding: 0;
+  border: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: none;
+  color: var(--mesa-texto);
+  font-family: var(--imprenta);
+}
+
+.hoja--ancha {
+  max-width: min(640px, 100%);
+}
+
+.hoja::backdrop {
+  background: var(--telon);
+}
+
+.hoja[open] {
+  animation: hoja-sube .26s cubic-bezier(.2, .8, .2, 1);
+}
+
+@keyframes hoja-sube {
+  from { transform: translateY(24px); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+
+.hoja__papel {
+  min-height: 100%;
+  padding-top: 0;
+  padding-right: max(20px, env(safe-area-inset-right, 0px));
+  padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+  padding-left: max(20px, env(safe-area-inset-left, 0px));
+  border-radius: 22px 22px 0 0;
+  background-color: var(--hoja);
+  box-shadow: 0 -10px 40px -18px var(--hoja-sombra);
+}
+
+@media (min-width: 700px) and (min-height: 560px) {
+  .hoja {
+    margin: auto;
+    max-height: calc(100% - 64px);
+  }
+
+  .hoja__papel {
+    padding-bottom: 28px;
+    border-radius: 22px;
+    box-shadow: 0 24px 60px -24px var(--hoja-sombra);
+  }
+}
+
+.hoja__cabeza {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 0 10px;
+  background-color: var(--hoja);
+}
+
+.hoja__titulo {
+  margin: 0;
+  font-family: var(--mano-a);
+  font-weight: 400;
+  font-size: 30px;
+  line-height: 1.05;
+  -webkit-text-stroke: .012em currentColor;
+}
+
+.hoja__titulo:focus {
+  outline: none;
+}
+
+.grupo {
+  margin: 0;
+  padding: 16px 0 18px;
+  border: 0;
+  border-top: 1.5px dashed var(--mesa-linea);
+  min-width: 0;
+}
+
+.grupo__titulo {
+  float: left;
+  width: 100%;
+  margin: 0 0 8px;
+  padding: 0;
+  font-family: var(--imprenta);
+  font-stretch: 70%;
+  font-weight: 650;
+  font-size: 12.5px;
+  line-height: 1.3;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--mesa-tenue);
+}
+
+.grupo__titulo + * {
+  clear: both;
+}
+
+.nota {
+  margin: 6px 0;
+  font-size: 15px;
+  line-height: 1.4;
+  color: var(--mesa-tenue);
+}
+
+.nota:empty {
+  display: none;
+}
+
+.nota--aviso {
+  color: var(--mesa-texto);
+  font-weight: 600;
+}
+
+.nota--centro {
+  text-align: center;
+}
+
+/* Casillas a pluma: la palomita se dibuja encima de una caja de tinta. */
+.casillas {
+  display: grid;
+  gap: 2px;
+}
+
+.casilla {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  cursor: pointer;
+}
+
+.casilla input {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  margin: 0;
+  border: 2px solid currentColor;
+  border-radius: 5px 7px 5px 6px;
+  background: none;
+  color: inherit;
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+}
+
+.casilla__marca {
+  position: absolute;
+  left: -2px;
+  top: 50%;
+  width: 30px;
+  height: 30px;
+  margin-top: -18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.casilla input:checked ~ .casilla__marca {
+  opacity: 1;
+}
+
+.casilla__papel {
+  flex: none;
+  width: 16px;
+  height: 22px;
+  border-radius: 2px;
+  background: var(--c, var(--servilleta));
+  box-shadow: 0 0 0 1px var(--mesa-linea);
+  transform: rotate(-4deg);
+}
+
+.casilla__papel--propio {
+  --c: var(--servilleta);
+  transform: rotate(3deg);
+}
+
+.casilla__texto {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 16px;
+}
+
+.casilla__cuenta {
+  flex: none;
+  font-family: var(--mano-b);
+  font-size: 20px;
+  line-height: 1;
+  color: var(--mesa-tenue);
+}
+
+.casilla input:not(:checked) ~ .casilla__texto,
+.casilla input:not(:checked) ~ .casilla__papel {
+  opacity: .55;
+}
+
+.casilla--ultima .casilla__texto::after {
+  content: " · la última";
+  color: var(--mesa-tenue);
+  font-size: 13px;
+}
+
+.grupo--prueba .boton {
+  margin-top: 6px;
+}
+
+/* ---------- Tus dilemas ---------- */
+
+.editor {
+  display: grid;
+  gap: 16px;
+  padding: 10px 0 20px;
+}
+
+.editor__vista {
+  width: 150px;
+  justify-self: center;
+  transform: rotate(-1.5deg);
+}
+
+.editor__vista .carta {
+  box-shadow: 0 1px 1px rgba(23, 30, 90, .1), 0 12px 22px -12px var(--mesa-sombra);
+}
+
+.vista--sin-a .carta__opcion--a,
+.vista--sin-b .carta__opcion--b {
+  opacity: .35;
+}
+
+@media (min-width: 540px) {
+  .editor {
+    grid-template-columns: 170px minmax(0, 1fr);
+    align-items: start;
+    gap: 24px;
+  }
+
+  .editor__vista {
+    width: 170px;
+  }
+}
+
+.editor__campos {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.campo {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 4px 8px;
+}
+
+.campo__etiqueta {
+  font-family: var(--mano-b);
+  font-size: 21px;
+  line-height: 1.1;
+}
+
+.campo__contador {
+  grid-row: 1;
+  grid-column: 2;
+  font-size: 12.5px;
+  color: var(--mesa-tenue);
+  font-variant-numeric: tabular-nums;
+}
+
+.campo__entrada {
+  grid-column: 1 / -1;
+  width: 100%;
+  min-height: 48px;
+  padding: 10px 12px;
+  border: 2px solid var(--mesa-linea);
+  border-radius: 10px 12px 9px 13px / 12px 9px 13px 10px;
+  background: transparent;
+  color: inherit;
+  font-family: var(--mano-a);
+  font-size: 19px;
+  line-height: 1.2;
+}
+
+.campo__entrada::placeholder {
+  color: var(--mesa-tenue);
+  opacity: .7;
+}
+
+.campo__entrada:focus {
+  border-color: currentColor;
+}
+
+.acciones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.editor--editando .editor__campos {
+  padding-left: 12px;
+  border-left: 3px solid currentColor;
+}
+
+.guardados {
+  padding-top: 16px;
+  border-top: 1.5px dashed var(--mesa-linea);
+}
+
+.guardados .grupo__titulo {
+  float: none;
+}
+
+.dilemas {
+  margin: 0 0 12px;
+  padding: 0;
+  list-style: none;
+}
+
+.dilema {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--mesa-linea);
+}
+
+.dilema__texto {
+  flex: 1 1 220px;
+  min-width: 0;
+  margin: 0;
+  font-family: var(--mano-a);
+  font-size: 18px;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.dilema__o {
+  font-family: var(--imprenta);
+  font-size: 1rem;
+  font-style: italic;
+  color: var(--mesa-tenue);
+}
+
+.dilema__acciones {
+  display: flex;
+  gap: 6px;
+}
+
+.confirmar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  width: 100%;
+}
+
+.confirmar__pregunta {
+  flex: 1 1 100%;
+  margin: 0;
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.copia {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+  padding: 10px 12px;
+  border: 2px solid var(--mesa-linea);
+  border-radius: 10px;
+  background: var(--mesa);
+  color: inherit;
+  font: 14px/1.45 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  resize: vertical;
+}
+
+/* ---------- Cómo se juega ---------- */
+
+.reglas-carta {
+  width: min(330px, 100%);
+  margin: 6px auto 14px;
+  transform: rotate(1deg);
+}
+
+.reglas-carta .carta {
+  box-shadow: 0 1px 1px rgba(23, 30, 90, .1), 0 14px 26px -14px var(--mesa-sombra);
+}
+
+/* ---------- Resultados de la prueba ---------- */
+
+.resultados {
+  display: grid;
+  gap: 6px;
+  margin: 6px 0 16px;
+}
+
+.veredicto {
+  padding: 12px 0 4px;
+  border-top: 1.5px dashed var(--mesa-linea);
+}
+
+.veredicto__titulo {
+  margin: 0 0 6px;
+  font-family: var(--mano-b);
+  font-weight: 400;
+  font-size: 24px;
+  line-height: 1.1;
+}
+
+.veredicto__cuenta {
+  color: var(--mesa-tenue);
+}
+
+.veredicto__lista {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.veredicto__lista li {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  gap: 8px;
+  padding: 6px 0;
+  font-size: 15px;
+  line-height: 1.35;
+}
+
+.veredicto__id {
+  font-stretch: 70%;
+  font-weight: 650;
+  font-size: 12.5px;
+  letter-spacing: .09em;
+  padding-top: 2px;
+}
+
+.veredicto__texto {
+  overflow-wrap: anywhere;
+}
+
+.acciones--resultados {
+  padding-top: 4px;
+}
+
+/* ---------- Pantallas grandes ---------- */
+
+@media (min-width: 700px) {
+  .menu__boton {
+    font-size: 13px;
+  }
+}
+
+/* ---------- Sin movimiento ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .hoja[open] {
+    animation: none;
+  }
+
+  .boton,
+  .boton:active {
+    transition: none;
+    transform: none;
+  }
+}
+
+@media (max-width: 379px) {
+  .menu__boton {
+    gap: 5px;
+    padding: 0 4px;
+    letter-spacing: .06em;
+  }
+}
+</style>
+<div class="app" id="app" data-vista="inicio">
+  <header class="cabeza">
+    <div class="cabeza__logo" id="logo"></div>
+    <div class="cabeza__lado">
+      <button type="button" class="chip" id="chip-prueba" data-abre="hoja-resultados" hidden>Prueba · <span id="marcadas">0</span></button>
+      <p class="cuenta" id="cuenta"></p>
+    </div>
+  </header>
+
+  <main class="mesa">
+    <h1 class="oculto">A o D · El juego de ¿Qué prefieres?</h1>
+    <div class="escenario" id="escenario">
+      <div class="hueco" id="hueco">
+        <div class="monton" id="monton" aria-hidden="true"><i></i><i></i></div>
+      </div>
+    </div>
+    <p class="oculto" id="anuncio" aria-live="polite" aria-atomic="true"></p>
+  </main>
+
+  <div class="pie" id="pie" hidden>
+  <div class="veredictos" id="veredictos" role="group" aria-label="Modo prueba: qué hacer con esta carta" hidden>
+    <button type="button" class="veredicto-boton" id="veredicto-queda" data-veredicto="queda" aria-pressed="false"><span>Se queda<svg class="trazo" aria-hidden="true" focusable="false" preserveAspectRatio="none"><use href="#g-ovalo"/></svg></span></button>
+    <button type="button" class="veredicto-boton" id="veredicto-facil" data-veredicto="facil" aria-pressed="false"><span>Muy fácil<svg class="trazo" aria-hidden="true" focusable="false" preserveAspectRatio="none"><use href="#g-ovalo"/></svg></span></button>
+    <button type="button" class="veredicto-boton" id="veredicto-fuera" data-veredicto="fuera" aria-pressed="false"><span>Fuera<svg class="trazo" aria-hidden="true" focusable="false" preserveAspectRatio="none"><use href="#g-ovalo"/></svg></span></button>
+  </div>
+  <div class="fin-prueba" id="fin-prueba" hidden>
+    <button type="button" class="boton" id="fin-ver-resultados" data-abre="hoja-resultados">Ver resultados de la prueba</button>
+  </div>
+  </div>
+
+  <nav class="mando" aria-label="Cartas">
+    <button type="button" class="boton boton--anterior" id="anterior" aria-label="Carta anterior" aria-disabled="true">
+      <svg class="icono" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M19.5 12.4C15.2 12 10.4 12.2 5.4 12.3"/><path d="M10.8 6.6C9 8.5 7.2 10.4 5.2 12.3 7 14.1 8.9 15.8 10.9 17.6"/></svg>
+      <span>Anterior</span>
+    </button>
+    <button type="button" class="boton boton--principal" id="siguiente">
+      <span id="siguiente-texto">Sacar la primera carta</span>
+      <svg class="icono icono--sigue" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4.5 11.8C8.8 12.1 13.6 12 18.6 11.9"/><path d="M13.3 6.4C15.1 8.3 16.9 10.1 18.8 11.9 17 13.8 15.1 15.6 13.1 17.4"/></svg>
+      <svg class="icono icono--baraja" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3.8 7.4c3.9-.2 6.9.3 9 3.2 2 2.8 3.9 5.6 7.4 5.9"/><path d="M3.8 16.4c3 .1 5.3-.6 6.9-2.4"/><path d="M14.1 9.3c1.5-1.4 3.3-2 6-2"/><path d="M17.6 4.6l2.8 2.7-2.8 2.6"/><path d="M17.5 13.9l2.8 2.6-2.9 2.6"/></svg>
+    </button>
+  </nav>
+
+  <nav class="menu" aria-label="Menú">
+    <button type="button" class="menu__boton" id="abrir-mazo" data-abre="hoja-mazo">
+      <svg class="icono" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9.2 4.4l8.6 1.3c.9.1 1.4.9 1.3 1.7l-1.6 11.1c-.1.9-.9 1.4-1.7 1.3l-8.6-1.3c-.9-.1-1.4-.9-1.3-1.7L7.5 5.7c.1-.9.9-1.4 1.7-1.3z"/><path d="M5.9 7.2l-.6.2c-.8.3-1.2 1.2-.9 2l3.6 10.3c.3.8 1.2 1.2 2 .9l1.4-.5"/></svg>
+      <span>Mazo</span>
+    </button>
+    <button type="button" class="menu__boton" id="abrir-dilemas" data-abre="hoja-dilemas">
+      <svg class="icono icono--trazo" viewBox="0 0 100 100" aria-hidden="true" focusable="false"><use href="#g-pluma"/></svg>
+      <span>Tus dilemas</span>
+    </button>
+    <button type="button" class="menu__boton" id="abrir-reglas" data-abre="hoja-reglas">
+      <svg class="icono" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12.3 3.6C7.4 3.4 3.7 7.2 3.8 12.1c.1 4.6 3.9 8.4 8.6 8.2 4.6-.2 8-4 7.9-8.5C20.2 7.4 17 3.9 12.6 3.7"/><path d="M9.5 9.6c.2-1.7 1.4-2.7 2.8-2.7 1.5 0 2.6 1 2.6 2.4 0 2-2.7 2.2-2.7 4.4"/><path d="M12.2 17.1v.2"/></svg>
+      <span>Cómo se juega</span>
+    </button>
+  </nav>
+</div>
+
+<dialog class="hoja" id="hoja-mazo" aria-labelledby="titulo-mazo">
+  <div class="hoja__papel">
+    <header class="hoja__cabeza">
+      <h2 class="hoja__titulo" id="titulo-mazo">Mazo</h2>
+      <button type="button" class="boton boton--chico" id="cerrar-mazo" data-cerrar>Cerrar</button>
+    </header>
+
+    <fieldset class="grupo">
+      <legend class="grupo__titulo">Categorías</legend>
+      <div class="casillas" id="lista-categorias"></div>
+      <p class="nota nota--aviso" id="nota-categorias" role="status"></p>
+    </fieldset>
+
+    <fieldset class="grupo">
+      <legend class="grupo__titulo">Tus dilemas</legend>
+      <label class="casilla" for="incluir-propios">
+        <input type="checkbox" id="incluir-propios">
+        <svg class="casilla__marca" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4.6 12.8C6.4 14.2 8 15.9 9.4 18.1 12.2 12.6 15.6 8.1 20.1 4.4"/></svg>
+        <span class="casilla__papel casilla__papel--propio" aria-hidden="true"></span>
+        <span class="casilla__texto">Mezclar tus dilemas</span>
+        <span class="casilla__cuenta" id="cuantos-propios"></span>
+      </label>
+      <p class="nota" id="sin-propios">Todavía no escribes ninguno. <button type="button" class="enlace" id="ir-a-dilemas" data-abre="hoja-dilemas">Escribir uno</button></p>
+    </fieldset>
+
+    <div class="grupo">
+      <p class="grupo__titulo" aria-hidden="true">Barajar</p>
+      <p class="nota" id="resumen-mazo"></p>
+      <button type="button" class="boton" id="barajar">
+        <svg class="icono" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3.8 7.4c3.9-.2 6.9.3 9 3.2 2 2.8 3.9 5.6 7.4 5.9"/><path d="M3.8 16.4c3 .1 5.3-.6 6.9-2.4"/><path d="M14.1 9.3c1.5-1.4 3.3-2 6-2"/><path d="M17.6 4.6l2.8 2.7-2.8 2.6"/><path d="M17.5 13.9l2.8 2.6-2.9 2.6"/></svg>
+        <span>Barajar de nuevo</span>
+      </button>
+    </div>
+
+    <fieldset class="grupo grupo--prueba">
+      <legend class="grupo__titulo">Modo prueba</legend>
+      <label class="casilla" for="modo-prueba">
+        <input type="checkbox" id="modo-prueba" aria-describedby="explica-prueba">
+        <svg class="casilla__marca" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4.6 12.8C6.4 14.2 8 15.9 9.4 18.1 12.2 12.6 15.6 8.1 20.1 4.4"/></svg>
+        <span class="casilla__texto">Encender modo prueba</span>
+      </label>
+      <p class="nota" id="explica-prueba">Para depurar el mazo: bajo cada carta aparecen «Se queda», «Muy fácil» y «Fuera».</p>
+      <button type="button" class="boton" id="ir-a-resultados" data-abre="hoja-resultados" hidden>Ver resultados de la prueba</button>
+    </fieldset>
+  </div>
+</dialog>
+
+<dialog class="hoja hoja--ancha" id="hoja-dilemas" aria-labelledby="titulo-dilemas">
+  <div class="hoja__papel">
+    <header class="hoja__cabeza">
+      <h2 class="hoja__titulo" id="titulo-dilemas">Tus dilemas</h2>
+      <button type="button" class="boton boton--chico" id="cerrar-dilemas" data-cerrar>Cerrar</button>
+    </header>
+    <p class="nota">Escribe tu propio «¿Qué prefieres?». Se mezcla con las demás cartas. No se vale ponerlo fácil.</p>
+
+    <form class="editor" id="form-dilema" novalidate>
+      <div class="editor__vista" id="vista-dilema" aria-hidden="true"></div>
+      <div class="editor__campos">
+        <div class="campo">
+          <label class="campo__etiqueta" for="dilema-a">Primera opción</label>
+          <input class="campo__entrada" type="text" id="dilema-a" name="dilema-a" maxlength="60" autocomplete="off" placeholder="algo difícil" aria-describedby="contador-a">
+          <span class="campo__contador" id="contador-a">0/60</span>
+        </div>
+        <div class="campo">
+          <label class="campo__etiqueta" for="dilema-b">Segunda opción</label>
+          <input class="campo__entrada" type="text" id="dilema-b" name="dilema-b" maxlength="60" autocomplete="off" placeholder="algo igual de difícil" aria-describedby="contador-b">
+          <span class="campo__contador" id="contador-b">0/60</span>
+        </div>
+        <p class="nota nota--aviso" id="error-dilema" role="alert"></p>
+        <div class="acciones">
+          <button type="submit" class="boton boton--principal boton--compacto" id="guardar-dilema">Guardar dilema</button>
+          <button type="button" class="boton" id="cancelar-edicion" hidden>Cancelar</button>
+        </div>
+        <p class="nota" id="estado-dilema" role="status"></p>
+      </div>
+    </form>
+
+    <section class="guardados" aria-labelledby="titulo-guardados">
+      <h3 class="grupo__titulo" id="titulo-guardados">Guardados <span id="cuantos-guardados"></span></h3>
+      <p class="nota" id="propios-apagados" hidden>Ahora están fuera del mazo. Enciende «Mezclar tus dilemas» en Mazo para que salgan.</p>
+      <ul class="dilemas" id="lista-dilemas"></ul>
+      <p class="nota" id="sin-dilemas">Todavía no tienes dilemas guardados.</p>
+      <button type="button" class="boton" id="copiar-dilemas">Copiar mis dilemas</button>
+      <p class="nota" id="estado-copia-dilemas" role="status"></p>
+      <label class="oculto" for="copia-dilemas">Tus dilemas como texto</label>
+      <textarea class="copia" id="copia-dilemas" readonly rows="6" hidden></textarea>
+    </section>
+  </div>
+</dialog>
+
+<dialog class="hoja" id="hoja-reglas" aria-labelledby="titulo-reglas">
+  <div class="hoja__papel">
+    <header class="hoja__cabeza">
+      <h2 class="hoja__titulo" id="titulo-reglas">Cómo se juega</h2>
+      <button type="button" class="boton boton--chico" id="cerrar-reglas" data-cerrar>Cerrar</button>
+    </header>
+    <div class="reglas-carta" id="reglas-carta"></div>
+    <p class="nota nota--centro">Toca o desliza la carta para sacar otra. Con teclado: espacio o flechas.</p>
+  </div>
+</dialog>
+
+<dialog class="hoja hoja--ancha" id="hoja-resultados" aria-labelledby="titulo-resultados">
+  <div class="hoja__papel">
+    <header class="hoja__cabeza">
+      <h2 class="hoja__titulo" id="titulo-resultados">Resultados de la prueba</h2>
+      <button type="button" class="boton boton--chico" id="cerrar-resultados" data-cerrar>Cerrar</button>
+    </header>
+    <p class="nota" id="resumen-resultados"></p>
+    <p class="nota" id="sin-marcas" tabindex="-1">Todavía no marcas ninguna carta. Con el modo prueba encendido, bajo cada carta aparecen «Se queda», «Muy fácil» y «Fuera».</p>
+    <div class="resultados" id="lista-resultados"></div>
+    <div class="acciones acciones--resultados" id="acciones-resultados">
+      <button type="button" class="boton" id="copiar-resultados">Copiar resultados</button>
+      <button type="button" class="boton" id="borrar-marcas" data-pide-confirmar>Borrar marcas</button>
+      <div class="confirmar" id="confirmar-marcas" role="group" aria-labelledby="pregunta-borrar-marcas" hidden>
+        <p class="confirmar__pregunta" id="pregunta-borrar-marcas">¿Borrar las marcas? No se puede deshacer.</p>
+        <button type="button" class="boton boton--chico boton--fuerte" id="si-borrar-marcas">Sí, borrar</button>
+        <button type="button" class="boton boton--chico" id="no-borrar-marcas">No</button>
+      </div>
+    </div>
+    <p class="nota" id="estado-copia-resultados" role="status"></p>
+    <label class="oculto" for="copia-resultados">Resultados como texto</label>
+    <textarea class="copia" id="copia-resultados" readonly rows="8" hidden></textarea>
+  </div>
+</dialog>
+<script>
+/* js/cartas.js */
+// Mazo de A o D · Edición 01
+//
+// Este archivo es la única fuente de las cartas: de aquí salen el juego digital,
+// los archivos de impresión y docs/cartas.md. Para cambiar una carta, edítala aquí.
+//
+// Cada carta completa la frase «¿Qué prefieres…?» con dos opciones:
+//   id      código fijo de la carta (no se reutiliza aunque la carta se borre)
+//   a, b    las dos opciones; cada una debe entenderse sola, sin punto final
+//   estado  "ejemplo"  = escrita por ustedes en docs/esencia.md
+//           "borrador" = propuesta por revisar; cámbienla o bórrenla sin miedo
+//           "aprobada" = ya la probaron y se queda
+//
+// Regla editorial: si la respuesta es demasiado fácil, la carta no entra.
+// Máximo recomendado: 60 caracteres por opción.
+//
+// "banca" son cartas de reserva que pasaron el filtro pero no están en el mazo.
+
+window.MAZO = {
+  nombre: "A o D",
+  descriptor: "El juego de ¿Qué prefieres?",
+  lema: "Hay que elegir.",
+  edicion: "01",
+  cartasEnBlanco: 10,
+  categorias: [
+    {
+      id: "comida",
+      codigo: "COM",
+      nombre: "Comida",
+      descripcion: "Ingredientes, antojos, hábitos, combinaciones y polémicas culinarias.",
+      cartas: [
+        { id: "COM-01", a: "cilantro", b: "perejil", estado: "ejemplo" },
+        { id: "COM-02", a: "no volver a comer queso", b: "no volver a comer pan", estado: "ejemplo" },
+        { id: "COM-03", a: "salsa verde", b: "salsa roja", estado: "borrador" },
+        { id: "COM-04", a: "pizza fría", b: "pizza recalentada", estado: "borrador" },
+        { id: "COM-05", a: "3 tacos perfectos", b: "10 tacos regulares", estado: "borrador" },
+        { id: "COM-06", a: "desayuno dulce", b: "desayuno salado", estado: "borrador" },
+        { id: "COM-07", a: "cocinar todos los días", b: "lavar los platos todos los días", estado: "borrador" },
+        { id: "COM-08", a: "carne casi cruda", b: "carne bien cocida", estado: "borrador" },
+        { id: "COM-09", a: "decidir siempre tú dónde se come", b: "no volver a decidir dónde se come", estado: "borrador" },
+        { id: "COM-10", a: "refresco sin gas", b: "papas fritas aguadas", estado: "borrador" },
+        { id: "COM-11", a: "todo al centro para compartir", b: "cada quien su plato y ni una probadita", estado: "borrador" },
+        { id: "COM-12", a: "fresas con crema", b: "mango con chile", estado: "borrador" },
+        { id: "COM-13", a: "que toda tu comida pique de más", b: "que tu comida no vuelva a picar nunca", estado: "borrador" },
+        { id: "COM-14", a: "quemarte la lengua en cada comida", b: "morderte el cachete en cada comida", estado: "borrador" },
+        { id: "COM-15", a: "helado en cono", b: "helado en vasito", estado: "borrador" },
+        { id: "COM-16", a: "quedarte con tantita hambre", b: "acabar a punto de reventar", estado: "borrador" },
+        { id: "COM-17", a: "ponerle cátsup a todo", b: "ponerle mayonesa a todo", estado: "borrador" },
+        { id: "COM-18", a: "comerte primero lo que más te gusta", b: "dejar lo mejor del plato para el final", estado: "borrador" },
+        { id: "COM-19", a: "cenar siempre a las 6 de la tarde", b: "cenar siempre a las 11 de la noche", estado: "borrador" },
+        { id: "COM-20", a: "un mesero que nunca aparece", b: "un mesero que viene cada dos minutos", estado: "borrador" },
+      ],
+      banca: [
+        { a: "arroz", b: "frijoles" },
+        { a: "huevos estrellados", b: "huevos revueltos" },
+        { a: "cocinar sin ajo", b: "cocinar sin cebolla" },
+        { a: "comer con alguien que hace ruido al masticar", b: "comer con alguien que sorbe todo lo que toma" },
+      ],
+    },
+    {
+      id: "destinos",
+      codigo: "DES",
+      nombre: "Destinos y aventuras",
+      descripcion: "Viajes, lugares, actividades, experiencias y situaciones de exploración.",
+      cartas: [
+        { id: "DES-01", a: "una tarde en la playa", b: "un hike en la montaña", estado: "ejemplo" },
+        { id: "DES-02", a: "un safari en África", b: "ver auroras boreales en Islandia", estado: "ejemplo" },
+        { id: "DES-03", a: "ventanilla", b: "pasillo", estado: "borrador" },
+        { id: "DES-04", a: "perder tu maleta el primer día", b: "perder tu celular el último día", estado: "borrador" },
+        { id: "DES-05", a: "Japón", b: "Italia", estado: "borrador" },
+        { id: "DES-06", a: "vuelos gratis de por vida", b: "hoteles gratis de por vida", estado: "borrador" },
+        { id: "DES-07", a: "dormir en un hostal con 12 desconocidos", b: "dormir en una casa de campaña bajo la lluvia", estado: "borrador" },
+        { id: "DES-08", a: "museos", b: "mercados", estado: "borrador" },
+        { id: "DES-09", a: "ir junto a un bebé que llora todo el vuelo", b: "ir junto a alguien que te platica todo el vuelo", estado: "borrador" },
+        { id: "DES-10", a: "viaje todo incluido", b: "viaje de mochilero", estado: "borrador" },
+        { id: "DES-11", a: "un hotel increíble con playa fea", b: "un hotel feo con playa increíble", estado: "borrador" },
+        { id: "DES-12", a: "paracaídas", b: "bungee", estado: "borrador" },
+        { id: "DES-13", a: "viajar una semana sin internet", b: "viajar una semana con la misma ropa", estado: "borrador" },
+        { id: "DES-14", a: "Disney", b: "Las Vegas", estado: "borrador" },
+        { id: "DES-15", a: "conocer 10 países en un mes", b: "vivir un mes en una sola ciudad", estado: "borrador" },
+        { id: "DES-16", a: "nadar donde puede haber tiburones", b: "acampar donde puede haber osos", estado: "borrador" },
+        { id: "DES-17", a: "selva", b: "desierto", estado: "borrador" },
+        { id: "DES-18", a: "pasar un día del viaje con diarrea", b: "pasar todo el viaje con ampollas en los pies", estado: "borrador" },
+        { id: "DES-19", a: "salir de viaje a las 4 de la mañana", b: "llegar al hotel a las 3 de la mañana", estado: "borrador" },
+        { id: "DES-20", a: "un viaje a la Luna", b: "un viaje al fondo del mar", estado: "borrador" },
+      ],
+      banca: [
+        { a: "una escala de 10 horas", b: "tres escalas de 40 minutos" },
+        { a: "viajar con alguien que se queja de todo", b: "viajar con alguien que siempre llega tarde" },
+        { a: "Navidad con nieve", b: "Navidad en la playa" },
+        { a: "road trip", b: "viaje en tren" },
+        { a: "alberca", b: "mar" },
+        { a: "gran ciudad", b: "pueblito" },
+      ],
+    },
+    {
+      id: "familia",
+      codigo: "FAM",
+      nombre: "Familia y vínculos",
+      descripcion: "Familia, amistades, pareja y dilemas sociales.",
+      cartas: [
+        { id: "FAM-01", a: "cuidar a sobrinos de 5 años", b: "cuidar a un bebé de meses", estado: "ejemplo" },
+        { id: "FAM-02", a: "que tu mamá lea tus WhatsApps", b: "que tu jefe vea tu historial de búsqueda", estado: "ejemplo" },
+        { id: "FAM-03", a: "llamada", b: "nota de voz", estado: "borrador" },
+        { id: "FAM-04", a: "que tu familia elija tu próximo tatuaje", b: "que tus amigos elijan tu próximo tatuaje", estado: "borrador" },
+        { id: "FAM-05", a: "vecino fiestero", b: "vecino chismoso", estado: "borrador" },
+        { id: "FAM-06", a: "que todas las reuniones sean en tu casa", b: "que ninguna reunión sea en tu casa", estado: "borrador" },
+        { id: "FAM-07", a: "Navidad", b: "Año Nuevo", estado: "borrador" },
+        { id: "FAM-08", a: "visitas que llegan sin avisar", b: "visitas que no se van", estado: "borrador" },
+        { id: "FAM-09", a: "mesa de niños", b: "mesa de adultos", estado: "borrador" },
+        { id: "FAM-10", a: "toparte con tu ex en el súper y en pijama", b: "toparte con tu ex en plena primera cita", estado: "borrador" },
+        { id: "FAM-11", a: "que cada quien pague lo suyo", b: "dividir la cuenta parejo entre todos", estado: "borrador" },
+        { id: "FAM-12", a: "vivir a 5 minutos de tu familia", b: "vivir a 5 horas de tu familia", estado: "borrador" },
+        { id: "FAM-13", a: "silencio incómodo", b: "plática forzada", estado: "borrador" },
+        { id: "FAM-14", a: "dar el brindis frente a todos", b: "abrir la pista de baile", estado: "borrador" },
+        { id: "FAM-15", a: "despedirte de uno por uno", b: "irte sin decir adiós", estado: "borrador" },
+        { id: "FAM-16", a: "que te regalen algo hecho a mano", b: "que te regalen dinero en un sobre", estado: "borrador" },
+        { id: "FAM-17", a: "llegar siempre media hora antes", b: "llegar siempre media hora tarde", estado: "borrador" },
+        { id: "FAM-18", a: "dormir con alguien que ronca", b: "dormir con alguien que te quita la cobija", estado: "borrador" },
+        { id: "FAM-19", a: "prestarle dinero a un amigo", b: "pedirle prestado a un amigo", estado: "borrador" },
+        { id: "FAM-20", a: "una cena donde solo se habla de política", b: "una cena donde solo se habla de dietas", estado: "borrador" },
+      ],
+      banca: [
+        { a: "un fin de semana con tus suegros", b: "un fin de semana con toda tu oficina" },
+        { a: "que tu familia sepa cuánto ganas", b: "que tu familia vea en qué gastas" },
+        { a: "negocio con amigos", b: "negocio con familia" },
+        { a: "que te sorprendan con el regalo", b: "que te pregunten qué quieres de regalo" },
+      ],
+    },
+    {
+      id: "celebrities",
+      codigo: "CEL",
+      nombre: "Celebrities y cultura pop",
+      descripcion: "Famosos, personajes, películas, encuentros y escenarios improbables.",
+      cartas: [
+        { id: "CEL-01", a: "una cena con Jude Bellingham", b: "una cena con Keanu Reeves", estado: "ejemplo" },
+        { id: "CEL-02", a: "que Pedro Pascal sea tu vecino", b: "que Keanu Reeves sea tu compañero de trabajo", estado: "ejemplo" },
+        { id: "CEL-03", a: "Friends", b: "The Office", estado: "borrador" },
+        { id: "CEL-04", a: "cocinarle a Gordon Ramsay", b: "bailar frente a Shakira", estado: "borrador" },
+        { id: "CEL-05", a: "Luis Miguel", b: "Juan Gabriel", estado: "borrador" },
+        { id: "CEL-06", a: "que tu jefa sea Miranda Priestly", b: "que tu jefe sea Don Cangrejo", estado: "borrador" },
+        { id: "CEL-07", a: "meter el gol que gana un Mundial", b: "ganar un óscar", estado: "borrador" },
+        { id: "CEL-08", a: "Shrek", b: "Toy Story", estado: "borrador" },
+        { id: "CEL-09", a: "participar en un reality dentro de una casa", b: "participar en un reality en una isla desierta", estado: "borrador" },
+        { id: "CEL-10", a: "un karaoke con Chayanne", b: "un karaoke con Ricky Martin", estado: "borrador" },
+        { id: "CEL-11", a: "película doblada", b: "película subtitulada", estado: "borrador" },
+        { id: "CEL-12", a: "solo poder ver series que ya viste", b: "solo poder ver series que no has visto", estado: "borrador" },
+        { id: "CEL-13", a: "ver en vivo a Queen con Freddie Mercury", b: "ver en vivo a los Beatles", estado: "borrador" },
+        { id: "CEL-14", a: "Dragon Ball", b: "Pokémon", estado: "borrador" },
+        { id: "CEL-15", a: "unas vacaciones con las Kardashian", b: "unas vacaciones con la familia real británica", estado: "borrador" },
+        { id: "CEL-16", a: "adoptar a Baby Yoda", b: "adoptar a Stitch", estado: "borrador" },
+        { id: "CEL-17", a: "tener un cameo en Los Simpson", b: "tener un cameo en una película de Marvel", estado: "borrador" },
+        { id: "CEL-18", a: "tener los poderes de Spider-Man", b: "tener a Alfred, el mayordomo de Batman", estado: "borrador" },
+        { id: "CEL-19", a: "un maratón de todo Harry Potter", b: "un maratón de todo El Señor de los Anillos", estado: "borrador" },
+        { id: "CEL-20", a: "pasar un día en Jurassic Park", b: "jugar una partida de Jumanji", estado: "borrador" },
+      ],
+      banca: [
+        { a: "irte de viaje con Jack Sparrow", b: "irte de viaje con Indiana Jones" },
+        { a: "que todo el mundo te conozca por un meme", b: "que todo el mundo te conozca por una telenovela" },
+        { a: "Bad Bunny", b: "Daddy Yankee" },
+        { a: "team Edward", b: "team Jacob" },
+      ],
+    },
+    {
+      id: "dilemas",
+      codigo: "DIL",
+      nombre: "Dilemas imposibles",
+      descripcion: "Situaciones hipotéticas, absurdas, incómodas y elecciones difíciles.",
+      cartas: [
+        { id: "DIL-01", a: "tener siempre los pies fríos", b: "tener siempre las manos sudadas", estado: "ejemplo" },
+        { id: "DIL-02", a: "tener hipo cada vez que te ríes", b: "estornudar cada vez que alguien dice tu nombre", estado: "ejemplo" },
+        { id: "DIL-03", a: "no tener codos", b: "no tener rodillas", estado: "borrador" },
+        { id: "DIL-04", a: "solo poder susurrar", b: "solo poder gritar", estado: "borrador" },
+        { id: "DIL-05", a: "la misma canción pegada de por vida", b: "una palabra en la punta de la lengua de por vida", estado: "borrador" },
+        { id: "DIL-06", a: "andar siempre con sueño", b: "andar siempre con ganas de hacer pipí", estado: "borrador" },
+        { id: "DIL-07", a: "soltar la carcajada en cada funeral", b: "ponerte a llorar en cada fiesta", estado: "borrador" },
+        { id: "DIL-08", a: "siempre en pijama", b: "siempre de gala", estado: "borrador" },
+        { id: "DIL-09", a: "un mosquito en tu cuarto todas las noches", b: "que llueva cada vez que sales de casa", estado: "borrador" },
+        { id: "DIL-10", a: "casa sin puertas", b: "casa sin ventanas", estado: "borrador" },
+        { id: "DIL-11", a: "escribir siempre con faltas de ortografía", b: "escribir siempre todo en mayúsculas", estado: "borrador" },
+        { id: "DIL-12", a: "no alcanzar nunca la repisa de arriba", b: "pegarte siempre con el marco de la puerta", estado: "borrador" },
+        { id: "DIL-13", a: "traer siempre algo verde entre los dientes", b: "traer siempre la bragueta abierta", estado: "borrador" },
+        { id: "DIL-14", a: "oler todo diez veces más fuerte", b: "oír todo diez veces más fuerte", estado: "borrador" },
+        { id: "DIL-15", a: "5 horas en un elevador atorado y lleno de gente", b: "5 horas a solas en un teleférico atorado", estado: "borrador" },
+        { id: "DIL-16", a: "nunca perder en piedra, papel o tijera", b: "encestar siempre en el bote de basura", estado: "borrador" },
+        { id: "DIL-17", a: "no acordarte nunca del nombre de nadie", b: "que nadie se acuerde nunca de tu nombre", estado: "borrador" },
+        { id: "DIL-18", a: "que un narrador de fútbol narre todo lo que haces", b: "que se oigan risas grabadas cada vez que hablas", estado: "borrador" },
+        { id: "DIL-19", a: "no volver a verte en un espejo", b: "no volver a salir en una foto", estado: "borrador" },
+        { id: "DIL-20", a: "bañarte siempre con agua helada", b: "tomar siempre tus bebidas tibias", estado: "borrador" },
+      ],
+      banca: [
+        { a: "tener en tu cuarto un mosquito que nunca se va", b: "tener sobre tu cama una gotera que nunca para" },
+        { a: "que suene una trompeta cada vez que entras a un lugar", b: "que te aplaudan cada vez que sales del baño" },
+        { a: "compartir casa con un fantasma chismoso", b: "compartir casa con un loro que repite todo" },
+        { a: "siempre sin zapatos", b: "siempre con casco" },
+        { a: "olfato de perro", b: "oído de murciélago" },
+      ],
+    },
+    {
+      id: "asco",
+      codigo: "ASC",
+      nombre: "Qué asco",
+      descripcion: "Preguntas desagradables, memorables y divertidas. Son la sorpresa, no el centro.",
+      cartas: [
+        { id: "ASC-01", a: "oler los pies sudados de tu mejor amigx", b: "sacarle la cerilla de los oídos", estado: "ejemplo" },
+        { id: "ASC-02", a: "sopa con pelo", b: "sopa con mosca", estado: "borrador" },
+        { id: "ASC-03", a: "lamer el tubo del metro", b: "lamer la suela de tu zapato", estado: "borrador" },
+        { id: "ASC-04", a: "limpiar vómito", b: "destapar un baño", estado: "borrador" },
+        { id: "ASC-05", a: "que te caiga popó de paloma en la cabeza", b: "que un perro te haga pipí en la pierna", estado: "borrador" },
+        { id: "ASC-06", a: "baño de gasolinera", b: "baño de festival", estado: "borrador" },
+        { id: "ASC-07", a: "vivir con alguien que deja uñas cortadas en el sillón", b: "vivir con alguien que usa tu cepillo de dientes", estado: "borrador" },
+        { id: "ASC-08", a: "pisar una babosa con el pie descalzo", b: "pisar una cucaracha con el pie descalzo", estado: "borrador" },
+        { id: "ASC-09", a: "un trago de leche cortada", b: "una mordida de pan con moho", estado: "borrador" },
+        { id: "ASC-10", a: "que te estornuden en la nuca", b: "que te eructen en la cara", estado: "borrador" },
+      ],
+      banca: [
+        { a: "agua de florero", b: "agua de pecera" },
+        { a: "caldo con pellejo", b: "leche con nata" },
+        { a: "ponerte tu ropa sudada del gym de ayer", b: "secarte con una toalla que huele a humedad" },
+        { a: "que se te pegue un curita usado en la alberca", b: "tragar agua de la alberca de los niños" },
+        { a: "lavar un tupper olvidado un mes en el refri", b: "lavar a mano el bote de basura de la cocina" },
+        { a: "saludar de mano a quien salió del baño sin lavarse", b: "saludar de mano a quien se acaba de sacar un moco" },
+      ],
+    },
+  ],
+};
+</script>
+<script>
+/* js/carta.js */
+// A o D · Componente carta
+//
+// Crea las cartas como elementos <article class="carta ..."> nuevos. Necesita
+// css/tokens.css y css/carta.css. Lee window.MAZO (js/cartas.js) para el
+// nombre, el descriptor, el lema y la edición: el nombre del juego no se
+// escribe en ningún otro lugar.
+//
+//   Carta.frente(carta, categoria)  carta = {id, a, b, estado}; categoria = {id, codigo, nombre}
+//   Carta.propia(carta)             dilema escrito en la app = {a, b}
+//   Carta.enBlanco()                frente para escribir a mano
+//   Carta.reverso()                 igual para todas
+//   Carta.reglas()                  reglas resumidas
+//   Carta.portada()                 logotipo, descriptor y edición
+//   Carta.logotipo(opciones)        {variante: "marca" | "completo" | "icono", claro: bool}
+//   Carta.nivel(a, b)               "t-corta" | "t-media" | "t-larga" | "t-mini"
+
+(function () {
+  "use strict";
+
+  // Garabatos trazados a pulso (los mismos de la lámina). Se inyectan una sola
+  // vez en el documento y las cartas los usan con <use href="#g-…">.
+  var SIMBOLOS = '<symbol id="g-o" viewBox="0 0 100 100"><path d="M61 28.9C59.1 28 53.3 23.9 49.3 23.2C45.3 22.5 40.7 23 36.9 24.7C33.1 26.3 29.3 29.4 26.7 33C24.1 36.6 22 41.6 21.1 46.4C20.3 51.1 20.4 56.8 21.5 61.7C22.6 66.5 24.9 71.6 27.8 75.5C30.6 79.3 34.6 82.7 38.6 84.6C42.5 86.5 47.3 87.4 51.5 87C55.6 86.6 60.1 84.8 63.6 82.1C67.1 79.5 70.3 75.4 72.3 71.1C74.3 66.8 75.5 61.4 75.6 56.5C75.7 51.5 74.7 46 72.9 41.6C71.1 37.1 68.2 32.8 64.9 29.8C61.6 26.9 57.2 24.8 53.2 24C49.2 23.2 44.6 23.6 40.7 25C36.8 26.5 32.9 29.3 30 32.6C27.1 35.9 24.6 40.5 23.3 44.9C22 49.3 21.5 54.5 22 59C22.5 63.5 24.1 68.3 26.3 71.8C28.5 75.4 31.8 78.6 35.2 80.5C38.6 82.4 42.9 83.3 46.7 83.1C50.6 82.9 54.9 81.5 58.3 79.2C61.7 77 65.1 73.5 67.3 69.7C69.5 66 71.1 61.2 71.6 56.7C72.1 52.3 71.7 47.2 70.3 43.1C68.9 38.9 66.4 34.8 63.5 31.6C60.5 28.5 56.5 25.5 52.6 24C48.8 22.6 44.2 22 40.3 22.7C36.4 23.5 32.3 25.5 29.2 28.3C26.2 31.1 23.5 35.3 21.9 39.6C20.4 43.9 19.7 49.3 20.1 54.2C20.4 59 21.8 64.5 23.9 68.7C26 73 29.2 77.1 32.5 79.7C35.8 82.3 40 84.1 43.8 84.3C47.6 84.6 51.9 83.6 55.3 81.4C58.7 79.2 62.1 75.4 64.4 71.1C66.7 66.9 68.4 61.2 69 55.8C69.7 50.5 69.4 44.1 68.4 38.9C67.3 33.6 65.2 27.9 62.7 24.1C60.3 20.4 56.9 17.7 53.5 16.5C50.2 15.3 46.2 15.5 42.7 17C39.3 18.4 35.6 21.5 32.9 25.3C30.2 29 27.8 34.3 26.5 39.4C25.2 44.6 24.6 50.8 25 56.1C25.5 61.4 26.9 67.1 29 71.4C31.1 75.7 34.3 79.6 37.5 81.9C40.8 84.3 44.9 85.5 48.7 85.4C52.4 85.4 56.5 83.8 59.8 81.4C63.1 79 66.3 75 68.4 70.9C70.6 66.8 72.1 61.5 72.6 56.6C73.1 51.8 72.6 46.4 71.4 42C70.2 37.7 67.9 33.5 65.2 30.5C62.5 27.6 58.8 25.4 55.2 24.4C51.7 23.5 47.5 23.8 44 25.1C40.4 26.3 36.7 29 33.8 32.2C31 35.4 28.5 39.9 27 44.3C25.5 48.7 24.8 54 25 58.7C25.2 63.3 26.4 68.3 28.2 72.1C30 75.9 32.9 79.5 35.9 81.7C38.9 83.9 42.8 85.2 46.4 85.4C50 85.5 54 84.4 57.3 82.4C60.6 80.4 63.8 77.1 66.1 73.6C68.3 70 70 65.3 70.6 60.9C71.2 56.6 70.9 51.5 69.7 47.4C68.5 43.2 66.2 39.1 63.5 36C60.7 32.8 53.2 30.4 53 28.5C52.8 26.6 59 24.7 62 24.5C65 24.4 69.5 27 71 27.5"/></symbol><symbol id="g-tenedor" viewBox="0 0 100 100"><g transform="rotate(16 50 50)"><path d="M30.5 6.5C30.4 9 29.3 16.5 29.5 21.5C29.6 26.5 29.9 32.2 31.4 36.3C32.9 40.3 35.1 43.5 38.2 45.8C41.3 48.1 46.1 50.2 50.1 50.1C54.1 50.1 59 48 62.1 45.6C65.2 43.2 67.6 39.7 68.9 35.9C70.3 32 70 27.6 70.3 22.6C70.5 17.6 70.5 8.8 70.5 6.1"/><path d="M42.9 7.7Q42.7 21.1 42.4 34.4"/><path d="M56.8 6.9Q57 20.9 57.5 35"/><path d="M49.7 49.4C49.5 51.8 48.6 58.4 48.8 63.6C49 68.8 50.8 75.3 51 80.6C51.2 85.9 50.3 93.1 50.2 95.6"/></g></symbol><symbol id="g-avion" viewBox="0 0 100 100"><path d="M6.7 39.6Q50.8 24.2 94.9 8.7Q76.2 49.5 56.6 89.9Q49.8 74.4 44.4 58.3Q25.4 49.9 7.3 39.7"/><path d="M43.8 58.3Q69.4 34.7 94.3 10.2"/><path d="M37.7 75.8C36.4 77.9 33.7 86.5 30.1 88.2C26.6 90 19.3 88.7 16.4 86.4C13.4 84 11.5 77.2 12.6 74.1C13.7 71 20.3 67.4 23.2 68C26 68.7 29.9 73.7 29.7 78C29.4 82.2 25.6 90.6 21.6 93.4C17.5 96.3 8.1 94.8 5.4 95" stroke-dasharray="4.5 6"/></symbol><symbol id="g-burbujas" viewBox="0 0 100 100"><path d="M14.4 12.4C19.6 9.5 31.8 7.9 40 7.7C48.2 7.5 58.1 8.1 63.4 11.2C68.7 14.3 71.4 20.8 72 26.3C72.5 31.8 71.2 40.6 66.8 44.3C62.5 48 51.7 47.8 45.7 48.4C39.8 49 35.7 45.9 31.3 47.9C26.8 49.9 20.7 60.4 19 60.2C17.4 60.1 22.9 50.3 21.6 47.1C20.4 43.8 13.6 44.4 11.4 40.7C9.2 37.1 7.9 29.9 8.4 25.2C8.9 20.5 9.1 15.3 14.4 12.4Z"/><path d="M27 28h.2M40 28h.2M53 28h.2" stroke-width="6.5"/><path d="M46.4 57.8C50.4 55.8 57 54.5 63.5 54.4C70 54.2 80.5 54.6 85.4 56.9C90.2 59.3 91.9 64.3 92.5 68.6C93.1 72.9 91.2 79.8 89.2 82.7C87.2 85.7 81.6 83.7 80.5 86.1C79.5 88.5 84.6 96.8 82.6 97.2C80.7 97.6 73.9 90.2 68.8 88.5C63.8 86.8 57.1 88.6 52.5 87C47.9 85.5 43.4 82.6 41.2 79.2C39 75.8 38.5 70.1 39.4 66.6C40.2 63 42.4 59.8 46.4 57.8Z"/><path d="M52.4 66.8Q66.3 66.4 80.1 65.8"/><path d="M52.5 76.5Q61.8 76.3 71 75.5"/></symbol><symbol id="g-estrella" viewBox="0 0 100 100"><path d="M49.6 6.7Q62.4 49.3 73.4 92.3Q40 63.6 5.3 36.6Q50 34.3 94.8 34.5Q61.6 64.4 27.2 92.9Q38.1 47.6 51.9 3"/></symbol><symbol id="g-bifurcacion" viewBox="0 0 100 100"><path d="M50.1 95.9C50.1 92.9 50.2 83.3 50.1 77.7C50 72.1 51 67.7 49.3 62.3C47.7 57 44 50.7 40.2 45.7C36.3 40.6 30.4 36.7 26 31.8C21.6 27 15.8 19 13.7 16.5"/><path d="M49.5 63.5C51 61 54.6 53.1 58.4 48.1C62.1 43.1 67.2 38.8 71.9 33.8C76.5 28.8 83.8 20.6 86.2 18"/><path d="M16.1 33.1Q15.1 24.6 13.7 16.2Q22.3 18.6 30.4 22.4"/><path d="M69.6 23.7Q77.9 20.5 86.4 17.8Q85 26.6 83.9 35.3"/></symbol><symbol id="g-mosca" viewBox="0 0 100 100"><path d="M4 93.1C5.3 90.7 8.5 81.8 12.1 78.7C15.7 75.7 22.3 73.8 25.6 74.9C28.9 76 32.1 82.2 31.8 85.2C31.6 88.3 26.8 93.1 24.2 93.1C21.5 93.1 16.5 89.2 16 85.1C15.6 81.1 18.6 73.1 21.7 69C24.8 64.8 30.9 62.8 34.7 60.3C38.6 57.9 43 55.3 44.6 54.3" stroke-dasharray="0.1 6.5"/><path d="M68.7 49.3C68.5 48.8 68.4 46.9 67.6 45.8C66.8 44.8 65.5 43.9 64.1 43.3C62.6 42.7 60.7 42.3 59.1 42.3C57.4 42.3 55.4 42.6 53.9 43.1C52.4 43.7 51 44.6 50.1 45.5C49.2 46.4 48.6 47.6 48.6 48.7C48.5 49.7 49 50.9 49.9 51.8C50.7 52.7 52.1 53.5 53.7 53.9C55.2 54.3 57.2 54.5 59 54.4C60.7 54.3 62.8 53.9 64.3 53.2C65.9 52.6 67.4 51.6 68.3 50.6C69.2 49.7 69.7 48.4 69.7 47.4C69.7 46.4 69.2 45.4 68.3 44.6C67.4 43.8 65.9 43.1 64.4 42.7C62.9 42.2 60.9 42 59.1 42.1C57.4 42.2 55.4 42.6 53.9 43.1C52.4 43.7 51 44.6 50.2 45.5C49.4 46.4 48.9 47.6 49 48.6C49.1 49.7 49.8 50.8 50.8 51.7C51.8 52.6 53.4 53.5 55.1 54.1C56.7 54.6 58.9 55 60.8 55C62.7 55.1 64.9 54.8 66.5 54.4C68.2 53.9 69.8 53.1 70.9 52.3C71.9 51.4 72.6 50.3 72.7 49.3C72.7 48.2 72 47 71.1 46C70.1 45.1 68.5 44.2 66.9 43.6C65.2 43 63.1 42.6 61.1 42.6C59.2 42.5 57 42.8 55.3 43.2C53.6 43.7 52 44.6 51 45.5C49.9 46.4 49.2 47.6 49.1 48.7C49 49.8 49.4 51 50.2 52C51 53 52.5 53.9 54 54.6C55.5 55.2 57.5 55.6 59.3 55.7C61 55.8 63.1 55.6 64.6 55.1C66.2 54.7 67.7 53.9 68.6 53C69.5 52.1 70 51 70 49.8C70.1 48.7 69.7 47.4 68.8 46.3C68 45.3 65.6 44 64.9 43.6"/><path d="M77 48.5C76.9 48.1 76.9 46.7 76.5 46C76.1 45.3 75.3 44.6 74.6 44.3C73.9 44 73 43.9 72.3 44.1C71.6 44.3 70.8 44.8 70.3 45.4C69.9 46 69.6 46.9 69.6 47.7C69.5 48.4 69.8 49.4 70.2 50C70.6 50.7 71.3 51.3 72 51.5C72.7 51.8 73.6 51.8 74.3 51.6C75 51.3 75.8 50.7 76.2 50.1C76.7 49.4 77 48.4 77 47.6C77 46.8 76.8 45.9 76.4 45.3C76 44.6 75.3 44.1 74.7 43.8C74 43.6 73.1 43.6 72.5 43.8C71.8 44.1 71.1 44.6 70.6 45.2C70.2 45.8 69.9 46.7 69.9 47.4C69.9 48.2 70.1 49 70.5 49.6C70.9 50.2 71.6 50.7 72.3 50.9C72.9 51.1 73.8 51.1 74.5 50.9C75.1 50.7 75.9 50.2 76.3 49.6C76.7 49.1 77 48.3 77 47.6C77 47 76.7 46.2 76.3 45.7C75.9 45.1 74.8 44.6 74.6 44.4"/><path d="M55.6 43.2C54 41.1 47.5 35.2 45.8 30.9C44.1 26.6 44.2 20.1 45.3 17.5C46.5 14.9 50.1 13.9 52.6 15.4C55 16.9 58.7 22.1 60 26.6C61.3 31.1 60.4 39.8 60.5 42.4"/><path d="M61.6 41.9C62.3 39.2 63.2 30.2 65.6 25.8C68.1 21.4 73 16.5 76.1 15.7C79.2 14.8 83.8 17.8 84.2 20.6C84.6 23.3 81.9 28.6 78.7 32.3C75.5 36 67.2 41.2 64.9 42.9"/><path d="M54.1 55Q51.8 58.6 49.9 62.4"/><path d="M60.6 56.6Q60.5 60.7 60.2 64.8"/><path d="M66.2 55.2Q68 58.9 69.5 62.7"/></symbol><symbol id="g-pluma" viewBox="0 0 100 100"><path d="M22.4 70.2Q48.2 44.2 74.3 18.4Q79.4 24.9 85.8 30.1Q60.6 56.8 34.4 82.4Q28 76.2 22.1 69.7"/><path d="M22.4 70Q16.2 81.5 9.8 92.9Q22.1 87.5 34.3 81.9"/><path d="M65.2 27Q71.4 32.6 76.7 39"/><path d="M80.7 22.8Q86.8 27.8 92.2 33.8Q79.7 47.3 66.2 59.7"/></symbol><symbol id="g-circulo" viewBox="0 0 100 100"><path d="M60.7 10.7C58.2 10.5 50.5 8.9 45.6 9.5C40.6 10.1 35.4 11.8 31.1 14.3C26.7 16.8 22.5 20.3 19.4 24.3C16.2 28.3 13.7 33.2 12.2 38.1C10.7 42.9 10.2 48.5 10.6 53.6C11 58.6 12.6 64 14.8 68.5C17.1 73 20.5 77.3 24.2 80.6C28 83.9 32.7 86.7 37.4 88.3C42.2 89.9 47.5 90.6 52.5 90.3C57.4 90 62.7 88.6 67.1 86.5C71.6 84.3 75.9 81 79.3 77.4C82.6 73.7 85.3 69 87 64.4C88.7 59.7 89.5 54.4 89.3 49.5C89.1 44.5 87.8 39.3 85.7 34.9C83.6 30.4 80.5 26.1 76.9 22.8C73.3 19.4 68.7 16.7 64 14.9C59.4 13.2 53.9 12.2 48.8 12.3C43.8 12.4 36.2 15 33.7 15.5"/></symbol><symbol id="g-circulo2" viewBox="0 0 100 100"><path d="M32.3 15.1C30.2 16.5 23 20.1 19.4 23.5C15.8 27 12.8 31.4 10.9 35.8C9 40.3 7.9 45.4 8 50.2C8.1 54.9 9.3 60 11.4 64.4C13.4 68.8 16.7 73.2 20.4 76.5C24.2 79.9 29 82.8 33.8 84.6C38.7 86.4 44.4 87.5 49.7 87.5C54.9 87.5 60.6 86.5 65.5 84.6C70.4 82.8 75.2 79.9 78.9 76.5C82.6 73.2 85.9 68.8 87.9 64.4C89.9 60 91.1 54.8 91.1 50C91.1 45.2 90 40.1 88 35.6C85.9 31.2 82.7 26.8 79 23.4C75.2 20.1 70.3 17.1 65.4 15.3C60.5 13.5 54.7 12.6 49.4 12.6C44 12.7 38.2 13.9 33.2 15.8C28.3 17.8 23.4 20.8 19.6 24.4C15.9 27.9 12.7 32.4 10.7 37C8.7 41.6 8.2 49.3 7.7 51.7"/></symbol><symbol id="g-ovalo" viewBox="0 0 200 60"><path d="M79.8 5.1C75.9 5.5 63.6 6.4 56.2 7.4C48.8 8.4 41.6 9.8 35.3 11.3C29.1 12.8 23.3 14.5 18.6 16.4C14 18.2 10 20.3 7.3 22.4C4.5 24.5 2.7 26.8 2 28.9C1.3 31.1 1.7 33.4 3.2 35.5C4.6 37.7 7.2 39.8 10.7 41.8C14.2 43.7 18.9 45.6 24.2 47.2C29.5 48.9 35.8 50.3 42.6 51.5C49.3 52.7 56.9 53.7 64.7 54.4C72.4 55.1 80.8 55.6 89 55.7C97.2 55.9 105.8 55.8 113.9 55.4C122 55 130.2 54.3 137.6 53.3C145.1 52.4 152.4 51.2 158.7 49.8C165 48.4 170.8 46.8 175.5 45C180.3 43.3 184.2 41.3 187.1 39.3C189.9 37.3 191.8 35.1 192.5 33C193.3 30.9 192.9 28.7 191.5 26.6C190.1 24.5 187.6 22.4 184.1 20.5C180.7 18.5 176.1 16.7 170.8 15C165.6 13.4 159.3 11.9 152.6 10.6C145.9 9.4 138.3 8.3 130.6 7.6C122.9 6.8 114.6 6.3 106.4 6.1C98.2 5.8 89.7 5.9 81.6 6.2C73.5 6.5 65.4 7.1 58 7.9C50.6 8.7 40.7 10.6 37.2 11.1" stroke-width="1.7"/></symbol><symbol id="g-raya2" viewBox="0 0 200 18"><path d="M3 5.6C4.3 5.7 8.4 6.4 11 6.4C13.7 6.4 16.4 5.9 19.1 5.7C21.8 5.5 24.4 5.4 27.1 5.1C29.8 4.9 32.5 4.5 35.2 4.3C37.8 4.1 40.5 3.9 43.2 3.8C45.9 3.6 48.6 3.4 51.2 3.5C53.9 3.6 56.6 4.2 59.3 4.5C62 4.8 64.7 5.2 67.3 5.4C70 5.6 72.7 5.8 75.4 5.8C78.1 5.8 80.7 5.7 83.4 5.6C86.1 5.4 88.8 5 91.5 4.8C94.1 4.5 96.8 4.2 99.5 3.9C102.2 3.6 104.9 3.1 107.5 3.1C110.2 3 112.9 3.4 115.6 3.6C118.3 3.8 120.9 4 123.6 4.2C126.3 4.4 129 4.7 131.7 4.8C134.3 5 137 5.3 139.7 5.3C142.4 5.4 145.1 5.3 147.8 5.2C150.4 5.1 153.1 4.8 155.8 4.5C158.5 4.2 161.2 3.7 163.8 3.5C166.5 3.3 169.2 3.2 171.9 3.2C174.6 3.1 177.2 3.1 179.9 3.2C182.6 3.3 185.3 3.5 188 3.8C190.6 4 194.7 4.4 196 4.5" stroke-width="2.2"/><path d="M188 12.7C186.4 12.8 181.7 13.2 178.5 13.3C175.3 13.4 172.2 13.3 169 13.2C165.8 13 162.7 12.7 159.5 12.4C156.3 12.2 153.2 11.8 150 11.6C146.8 11.3 143.7 11 140.5 11C137.3 11 134.2 11.5 131 11.7C127.8 11.9 124.7 12 121.5 12.2C118.3 12.5 115.2 13 112 13.3C108.8 13.5 105.7 13.6 102.5 13.7C99.3 13.8 96.2 13.9 93 13.7C89.8 13.6 86.7 13.1 83.5 12.9C80.3 12.6 77.2 12.3 74 12.1C70.8 12 67.7 11.9 64.5 11.9C61.3 11.8 58.2 11.8 55 11.9C51.8 12.1 48.7 12.5 45.5 12.7C42.3 13 37.6 13.3 36 13.5" stroke-width="2.2"/></symbol><symbol id="g-renglones-1" viewBox="0 0 82 32"><path d="M0 20.4C0.9 20.4 3.4 20.5 5.1 20.5C6.8 20.5 8.5 20.5 10.2 20.4C12 20.4 13.7 20.4 15.4 20.3C17.1 20.3 18.8 20.2 20.5 20.1C22.2 20.1 23.9 20 25.6 20C27.3 20 29 20 30.8 20C32.5 20 34.2 20.1 35.9 20.2C37.6 20.2 39.3 20.3 41 20.4C42.7 20.4 44.4 20.4 46.1 20.4C47.8 20.4 49.5 20.4 51.2 20.4C53 20.3 54.7 20.3 56.4 20.2C58.1 20.1 59.8 20.1 61.5 20C63.2 20 64.9 20 66.6 19.9C68.3 19.9 70 19.9 71.8 19.9C73.5 19.9 75.2 20 76.9 20.1C78.6 20.1 81.1 20.2 82 20.3" stroke-width=".36" transform="translate(0 -10.4)"/><path d="M0 20.4C0.9 20.4 3.4 20.5 5.1 20.5C6.8 20.5 8.5 20.5 10.2 20.4C12 20.4 13.7 20.4 15.4 20.3C17.1 20.3 18.8 20.2 20.5 20.1C22.2 20.1 23.9 20 25.6 20C27.3 20 29 20 30.8 20C32.5 20.1 34.2 20.1 35.9 20.2C37.6 20.2 39.3 20.3 41 20.3C42.7 20.4 44.4 20.4 46.1 20.4C47.8 20.4 49.5 20.4 51.2 20.4C53 20.3 54.7 20.3 56.4 20.2C58.1 20.1 59.8 20.1 61.5 20C63.2 20 64.9 19.9 66.6 19.9C68.3 19.9 70 19.9 71.8 20C73.5 20 75.2 20 76.9 20.1C78.6 20.1 81.1 20.2 82 20.2" stroke-width=".36"/><path d="M0 30.7C0.9 30.7 3.4 30.8 5.1 30.8C6.8 30.8 8.5 30.8 10.2 30.8C12 30.8 13.7 30.7 15.4 30.7C17.1 30.6 18.8 30.6 20.5 30.5C22.2 30.5 23.9 30.4 25.6 30.4C27.3 30.4 29 30.4 30.8 30.5C32.5 30.5 34.2 30.6 35.9 30.7C37.6 30.7 39.3 30.8 41 30.8C42.7 30.9 44.4 30.9 46.1 30.9C47.8 30.9 49.5 30.9 51.2 30.9C53 30.9 54.7 30.8 56.4 30.8C58.1 30.7 59.8 30.7 61.5 30.7C63.2 30.6 64.9 30.6 66.6 30.6C68.3 30.6 70 30.6 71.8 30.6C73.5 30.6 75.2 30.7 76.9 30.7C78.6 30.8 81.1 30.9 82 30.9" stroke-width=".36"/></symbol><symbol id="g-renglones-2" viewBox="0 0 82 32"><path d="M0 30.7C0.9 30.7 3.4 30.8 5.1 30.8C6.8 30.8 8.5 30.8 10.2 30.8C12 30.8 13.7 30.7 15.4 30.7C17.1 30.6 18.8 30.6 20.5 30.5C22.2 30.5 23.9 30.4 25.6 30.4C27.3 30.4 29 30.4 30.8 30.5C32.5 30.5 34.2 30.6 35.9 30.7C37.6 30.7 39.3 30.8 41 30.8C42.7 30.9 44.4 30.9 46.1 30.9C47.8 30.9 49.5 30.9 51.2 30.9C53 30.9 54.7 30.8 56.4 30.8C58.1 30.7 59.8 30.7 61.5 30.7C63.2 30.6 64.9 30.6 66.6 30.6C68.3 30.6 70 30.6 71.8 30.6C73.5 30.6 75.2 30.7 76.9 30.7C78.6 30.8 81.1 30.9 82 30.9" stroke-width=".36" transform="translate(0 -20.6)"/><path d="M0 20.4C0.9 20.4 3.4 20.5 5.1 20.5C6.8 20.5 8.5 20.5 10.2 20.4C12 20.4 13.7 20.4 15.4 20.3C17.1 20.3 18.8 20.2 20.5 20.1C22.2 20.1 23.9 20 25.6 20C27.3 20 29 20 30.8 20C32.5 20 34.2 20.1 35.9 20.2C37.6 20.2 39.3 20.3 41 20.4C42.7 20.4 44.4 20.4 46.1 20.4C47.8 20.4 49.5 20.4 51.2 20.4C53 20.3 54.7 20.3 56.4 20.2C58.1 20.1 59.8 20.1 61.5 20C63.2 20 64.9 20 66.6 19.9C68.3 19.9 70 19.9 71.8 19.9C73.5 19.9 75.2 20 76.9 20.1C78.6 20.1 81.1 20.2 82 20.3" stroke-width=".36"/><path d="M0 30.8C0.8 30.8 3 30.8 4.6 30.8C6.1 30.8 7.6 30.8 9.1 30.8C10.6 30.8 12.2 30.7 13.7 30.7C15.2 30.6 16.7 30.5 18.2 30.5C19.8 30.5 21.3 30.5 22.8 30.5C24.3 30.4 25.9 30.4 27.4 30.5C28.9 30.5 30.4 30.6 31.9 30.7C33.5 30.7 35 30.8 36.5 30.9C38 30.9 39.5 30.9 41.1 30.9C42.6 30.9 44.1 30.9 45.6 30.9C47.1 30.9 48.7 30.8 50.2 30.8C51.7 30.7 53.2 30.6 54.8 30.6C56.3 30.6 57.8 30.6 59.3 30.6C60.8 30.6 62.4 30.6 63.9 30.6C65.4 30.6 66.9 30.7 68.4 30.8C70 30.8 72.2 30.9 73 30.9" stroke-width=".36"/></symbol>';
+
+  var GARABATOS = {
+    comida: "g-tenedor",
+    destinos: "g-avion",
+    familia: "g-burbujas",
+    celebrities: "g-estrella",
+    dilemas: "g-bifurcacion",
+    asco: "g-mosca"
+  };
+
+  var REGLAS = [
+    "Alguien saca una carta y lee: <span class=\"reglas__nowrap\">«¿Qué prefieres…?»</span>",
+    "Cada quien elige una de las dos opciones.",
+    "No se vale responder «las dos» ni «ninguna». " + subraya("Hay que elegir."),
+    "Explicar no es obligatorio, pero cualquiera puede preguntar " +
+      "<span class=\"reglas__nowrap\">«<span class=\"reglas__marca\">¿POR QUÉ?" + trazo("g-ovalo", "none") + "</span>»</span> y ahí empieza la discusión.",
+    "Siguiente carta."
+  ];
+
+  function mazo() {
+    return window.MAZO || {};
+  }
+
+  function asegurarSimbolos() {
+    if (document.getElementById("carta-simbolos")) return;
+    var svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("id", "carta-simbolos");
+    svg.setAttribute("aria-hidden", "true");
+    svg.setAttribute("focusable", "false");
+    svg.setAttribute("width", "0");
+    svg.setAttribute("height", "0");
+    svg.style.position = "absolute";
+    svg.style.overflow = "hidden";
+    svg.innerHTML = "<defs>" + SIMBOLOS + "</defs>";
+    (document.body || document.documentElement).appendChild(svg);
+  }
+
+  function esc(texto) {
+    return String(texto == null ? "" : texto)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  function limpio(texto) {
+    return String(texto == null ? "" : texto).replace(/\s+/g, " ").trim();
+  }
+
+  function trazo(id, aspecto, clase) {
+    return "<svg class=\"trazo" + (clase ? " " + clase : "") + "\" aria-hidden=\"true\" focusable=\"false\"" +
+      (aspecto ? " preserveAspectRatio=\"" + aspecto + "\"" : "") +
+      "><use href=\"#" + id + "\"/></svg>";
+  }
+
+  function subraya(texto) {
+    return "<span class=\"reglas__subraya\">" + texto + trazo("g-raya2", "none") + "</span>";
+  }
+
+  function crear(html) {
+    asegurarSimbolos();
+    var plantilla = document.createElement("template");
+    plantilla.innerHTML = html.trim();
+    return plantilla.content.firstElementChild;
+  }
+
+  function papel(extra) {
+    return "<div class=\"carta__papel\" aria-hidden=\"true\">" + (extra || "") + "</div>";
+  }
+
+  function codigo(id) {
+    return esc(String(id || "").replace(/-/g, "·"));
+  }
+
+  // Niveles de letra. Deben coincidir con css/carta.css: t es --t en cqw y
+  // o es --o. «hasta» es el largo máximo (en caracteres) que se prefiere
+  // para ese nivel; si el texto no cabe, se baja al siguiente.
+  var NIVELES = [
+    { clase: "t-corta", t: 17, o: 23, hasta: 14 },
+    { clase: "t-media", t: 10.6, o: 22, hasta: 34 },
+    { clase: "t-larga", t: 7.7, o: 17, hasta: Infinity },
+    { clase: "t-mini", t: 6, o: 13, hasta: Infinity }
+  ];
+
+  // Ancho aproximado de cada letra en unidades de --t: el mayor entre
+  // Mansalva (A, a .95t) y Covered By Your Grace (B, a 1.14t), medidos con
+  // las fuentes reales. Sirve para no elegir un nivel en el que no cabe.
+  var ANCHOS = [
+    [.25, "i.;'"], [.3, "l:¡"], [.35, "jí,!)"], [.46, " fkyáÍ13¿(/"],
+    [.5, "abcdghnoprstuvxóú9?"], [.55, "eéL068"], [.6, "qüJYÓ247-"],
+    [.65, "wñBFSÉÑ…"], [.7, "mACGIKNPQÁÚ5"], [.75, "DHUVX»"], [.8, "EOT"],
+    [.85, "zWZ"], [.9, "R"], [.95, "M«"]
+  ];
+  var ANCHO = {};
+  ANCHOS.forEach(function (par) {
+    par[1].split("").forEach(function (letra) { ANCHO[letra] = par[0]; });
+  });
+
+  var ANCHO_UTIL = 77;   // cqw: 82 de la cara menos 5 de sangría de cada opción
+  var ALTO_UTIL = 99.7;  // cqw: lo que queda para A, «o» y B
+
+  function ancho(palabra) {
+    var total = 0;
+    for (var i = 0; i < palabra.length; i++) total += ANCHO[palabra[i]] || .7;
+    return total;
+  }
+
+  // Renglones que ocupará el texto con corte voraz por palabras, o Infinity
+  // si alguna palabra no cabe sola en un renglón.
+  function renglones(texto, capacidad) {
+    var palabras = texto ? texto.split(" ") : [""];
+    var lineas = 1;
+    var actual = 0;
+    for (var i = 0; i < palabras.length; i++) {
+      var w = ancho(palabras[i]);
+      if (w > capacidad) return Infinity;
+      if (actual === 0) { actual = w; continue; }
+      if (actual + ANCHO[" "] + w <= capacidad) { actual += ANCHO[" "] + w; }
+      else { lineas++; actual = w; }
+    }
+    return lineas;
+  }
+
+  function cabe(n, a, b) {
+    var capacidad = ANCHO_UTIL / n.t * .99;
+    var la = renglones(a, capacidad);
+    var lb = renglones(b + "?", capacidad);
+    var alto = la * .95 * 1.04 * n.t + lb * 1.14 * n.t + n.o + 1.2 + .15 * n.t;
+    return alto <= ALTO_UTIL;
+  }
+
+  // Se prefiere el nivel según la opción más larga (como en la lámina) y se
+  // baja mientras el texto no quepa a lo ancho o a lo alto.
+  function nivel(a, b) {
+    a = limpio(a);
+    b = limpio(b);
+    var largo = Math.max(a.length, b.length);
+    for (var i = 0; i < NIVELES.length; i++) {
+      if (largo <= NIVELES[i].hasta && cabe(NIVELES[i], a, b)) return NIVELES[i].clase;
+    }
+    return NIVELES[NIVELES.length - 1].clase;
+  }
+
+  function frase(a, b) {
+    return "¿Qué prefieres: " + esc(limpio(a)) + " o " + esc(limpio(b)) + "?";
+  }
+
+  function caraDilema(a, b, garabato, pieIzq, pieDer) {
+    return "<div class=\"carta__cara\" aria-hidden=\"true\">" +
+      "<p class=\"carta__arranque\">¿Qué prefieres…</p>" +
+      trazo(garabato, "", "carta__garabato") +
+      "<div class=\"carta__dilema\">" +
+        "<p class=\"carta__opcion carta__opcion--a\">" + esc(limpio(a)) + "</p>" +
+        trazo("g-o", "", "carta__o") +
+        "<p class=\"carta__opcion carta__opcion--b\">" + esc(limpio(b)) + "<span class=\"carta__cierre\">?</span></p>" +
+      "</div>" +
+      "<p class=\"carta__pie\"><span class=\"carta__categoria\">" + pieIzq + "</span>" +
+        "<span class=\"carta__codigo\">" + pieDer + "</span></p>" +
+    "</div>";
+  }
+
+  function frente(carta, categoria) {
+    carta = carta || {};
+    categoria = categoria || {};
+    var id = String(categoria.id || "").replace(/[^a-z0-9-]/gi, "");
+    var garabato = GARABATOS[id] || "g-pluma";
+    return crear(
+      "<article class=\"carta carta--frente carta--" + id + " " + nivel(carta.a, carta.b) + "\"" +
+        " lang=\"es\" data-id=\"" + esc(carta.id) + "\" data-categoria=\"" + esc(id) + "\"" +
+        (carta.estado ? " data-estado=\"" + esc(carta.estado) + "\"" : "") + ">" +
+        papel() +
+        "<p class=\"carta__frase\">" + frase(carta.a, carta.b) + "</p>" +
+        caraDilema(carta.a, carta.b, garabato, esc(categoria.nombre), codigo(carta.id)) +
+      "</article>"
+    );
+  }
+
+  function propia(carta) {
+    carta = carta || {};
+    return crear(
+      "<article class=\"carta carta--frente carta--propia " + nivel(carta.a, carta.b) + "\" lang=\"es\" data-categoria=\"propia\">" +
+        papel() +
+        "<p class=\"carta__frase\">" + frase(carta.a, carta.b) + " Dilema propio.</p>" +
+        caraDilema(carta.a, carta.b, "g-pluma", "Dilema propio", "TÚ") +
+      "</article>"
+    );
+  }
+
+  function enBlanco() {
+    return crear(
+      "<article class=\"carta carta--blanco\" lang=\"es\" data-categoria=\"blanco\">" +
+        papel() +
+        "<p class=\"carta__frase\">Carta en blanco: ¿Qué prefieres…? Escribe las dos opciones. No se vale ponerlo fácil.</p>" +
+        "<div class=\"carta__cara\" aria-hidden=\"true\">" +
+          "<p class=\"carta__arranque\">¿Qué prefieres…</p>" +
+          trazo("g-pluma", "", "carta__garabato") +
+          "<div class=\"carta__dilema\">" +
+            "<div class=\"carta__renglones carta__renglones--a\">" + trazo("g-renglones-1", "none") + "</div>" +
+            trazo("g-o", "", "carta__o") +
+            "<div class=\"carta__renglones carta__renglones--b\">" + trazo("g-renglones-2", "none") +
+              "<span class=\"carta__cierre\">?</span></div>" +
+          "</div>" +
+          "<p class=\"carta__regla\">No se vale ponerlo fácil.</p>" +
+          "<p class=\"carta__pie\"><span class=\"carta__categoria\">Tus propios dilemas</span>" +
+            "<span class=\"carta__codigo\">TÚ·<i></i></span></p>" +
+        "</div>" +
+      "</article>"
+    );
+  }
+
+  function marcaHTML(claro) {
+    var nombre = limpio(mazo().nombre || "A o D");
+    var partes = nombre.split(/\s+o\s+/);
+    var dentro = partes.length === 2
+      ? "<span class=\"logo__a\">" + esc(partes[0]) + "</span>" + trazo("g-o", "", "logo__o") +
+        "<span class=\"logo__d\">" + esc(partes[1]) + "</span>"
+      : "<span class=\"logo__a\">" + esc(nombre) + "</span>";
+    return "<div class=\"logo__marca\" role=\"img\" aria-label=\"" + esc(nombre) + "\">" + dentro + "</div>";
+  }
+
+  function logotipoHTML(opciones) {
+    opciones = opciones || {};
+    var variante = opciones.variante || "marca";
+    var nombre = esc(limpio(mazo().nombre || "A o D"));
+    if (variante === "icono") {
+      return "<div class=\"logo logo--icono\" role=\"img\" aria-label=\"" + nombre + "\">" + trazo("g-o") + "</div>";
+    }
+    var clases = "logo logo--" + variante + (opciones.claro ? " logo--claro" : "");
+    var html = "<div class=\"" + clases + "\">" + marcaHTML();
+    if (variante === "completo") {
+      html += "<p class=\"logo__descriptor\">" + esc(mazo().descriptor) + "</p>" +
+        "<p class=\"logo__lema\">" + esc(mazo().lema) + trazo("g-raya2", "none") + "</p>";
+    }
+    return html + "</div>";
+  }
+
+  function logotipo(opciones) {
+    return crear(logotipoHTML(opciones));
+  }
+
+  function reverso() {
+    var nombre = esc(limpio(mazo().nombre || "A o D"));
+    return crear(
+      "<article class=\"carta carta--reverso\" lang=\"es\">" +
+        papel("<div class=\"carta__trama\"></div>") +
+        "<p class=\"carta__frase\">Reverso de " + nombre + "</p>" +
+        "<div class=\"carta__cara\" aria-hidden=\"true\">" +
+          "<div class=\"reverso__logo reverso__logo--arriba\">" + logotipoHTML({ claro: true }) + "</div>" +
+          "<div class=\"reverso__logo reverso__logo--abajo\">" + logotipoHTML({ claro: true }) + "</div>" +
+        "</div>" +
+      "</article>"
+    );
+  }
+
+  function edicion() {
+    return "Edición " + esc(mazo().edicion || "");
+  }
+
+  function reglas() {
+    var items = REGLAS.map(function (texto, i) {
+      return "<li><span class=\"reglas__num\" aria-hidden=\"true\">" +
+        trazo(i % 2 ? "g-circulo2" : "g-circulo") + (i + 1) + "</span><span>" + texto + "</span></li>";
+    }).join("");
+    return crear(
+      "<article class=\"carta carta--reglas\" lang=\"es\">" +
+        papel() +
+        "<div class=\"carta__cara\">" +
+          "<h2 class=\"reglas__titulo\">Cómo se juega</h2>" +
+          "<ol class=\"reglas__lista\">" + items + "</ol>" +
+          "<p class=\"reglas__cierre\">Sin puntos, sin ganadores, sin reglas complicadas.</p>" +
+          "<p class=\"carta__pie\" aria-hidden=\"true\"><span class=\"carta__categoria\">Reglas</span>" +
+            "<span class=\"carta__codigo\">" + edicion() + "</span></p>" +
+        "</div>" +
+      "</article>"
+    );
+  }
+
+  function portada() {
+    var m = mazo();
+    var preguntas = (m.categorias || []).reduce(function (n, c) { return n + (c.cartas || []).length; }, 0);
+    var giros = ["-6deg", "4deg", "-2deg", "7deg", "-5deg", "3deg"];
+    var papeles = Object.keys(GARABATOS).map(function (id, i) {
+      return "<i style=\"--c: var(--papel-" + id + "); --r: " + giros[i] + "\"></i>";
+    }).join("");
+    return crear(
+      "<article class=\"carta carta--portada\" lang=\"es\">" +
+        papel() +
+        "<div class=\"carta__cara\">" +
+          "<div class=\"portada__logo\">" + logotipoHTML({ variante: "completo" }) + "</div>" +
+          "<div class=\"portada__papeles\" aria-hidden=\"true\">" + papeles + "</div>" +
+          "<p class=\"carta__pie\"><span class=\"carta__categoria\">" + edicion() + "</span>" +
+            "<span class=\"carta__codigo\">" + preguntas + " dilemas</span></p>" +
+        "</div>" +
+      "</article>"
+    );
+  }
+
+  window.Carta = {
+    frente: frente,
+    propia: propia,
+    enBlanco: enBlanco,
+    reverso: reverso,
+    reglas: reglas,
+    portada: portada,
+    logotipo: logotipo,
+    nivel: nivel
+  };
+})();
+</script>
+<script>
+/* js/app.js */
+// A o D · Juego digital
+//
+// Una pantalla: el mazo barajado, una carta a la vez. Necesita js/cartas.js
+// (window.MAZO) y js/carta.js (window.Carta) cargados antes.
+//
+// El archivo tiene dos partes:
+//   1. AoDLogica: funciones puras (barajar, filtrar, avanzar, regresar, sanear
+//      lo guardado). No tocan el DOM; se prueban con Node.
+//   2. La aplicación: pinta, escucha gestos y teclas, guarda en localStorage.
+//
+// La partida se guarda como {vistas, pendientes, pos}:
+//   vistas      ids que ya salieron, en orden
+//   pendientes  ids que faltan, ya barajados (todas las cartas, aunque su
+//               categoría esté apagada: así vuelven si la enciendes)
+//   pos         -1 = mazo boca abajo; 0..vistas.length-1 = carta en la mesa;
+//               vistas.length = se acabó el mazo
+
+(function (global) {
+  "use strict";
+
+  // =====================================================================
+  // 1. Lógica pura
+  // =====================================================================
+
+  var MAX_OPCION = 60;
+  var VEREDICTOS = ["queda", "facil", "fuera"];
+
+  function barajar(lista, azar) {
+    azar = azar || Math.random;
+    var r = lista.slice();
+    for (var i = r.length - 1; i > 0; i--) {
+      var j = Math.floor(azar() * (i + 1));
+      var t = r[i];
+      r[i] = r[j];
+      r[j] = t;
+    }
+    return r;
+  }
+
+  function limpio(texto) {
+    return String(texto == null ? "" : texto).replace(/\s+/g, " ").trim();
+  }
+
+  function catalogo(mazo, propios) {
+    var porId = {};
+    var ids = [];
+    var categorias = [];
+    var categoriaPorId = {};
+    ((mazo && mazo.categorias) || []).forEach(function (c) {
+      if (!c || !c.id) return;
+      var cuenta = 0;
+      (c.cartas || []).forEach(function (carta) {
+        if (!carta || !carta.id || porId[carta.id]) return;
+        porId[carta.id] = { id: carta.id, a: carta.a, b: carta.b, estado: carta.estado, categoria: c.id };
+        ids.push(carta.id);
+        cuenta++;
+      });
+      var cat = { id: c.id, codigo: c.codigo, nombre: c.nombre, total: cuenta };
+      categorias.push(cat);
+      categoriaPorId[c.id] = cat;
+    });
+    (propios || []).forEach(function (p) {
+      if (!p || !p.id || porId[p.id]) return;
+      porId[p.id] = { id: p.id, a: p.a, b: p.b, propia: true, categoria: "propia" };
+      ids.push(p.id);
+    });
+    return { porId: porId, ids: ids, categorias: categorias, categoriaPorId: categoriaPorId };
+  }
+
+  function elegible(cat, ajustes, id) {
+    var c = cat.porId[id];
+    if (!c) return false;
+    if (c.propia) return !!ajustes.propios;
+    return ajustes.inactivas.indexOf(c.categoria) === -1;
+  }
+
+  function copiaPartida(p) {
+    return { vistas: p.vistas.slice(), pendientes: p.pendientes.slice(), pos: p.pos };
+  }
+
+  function nueva(cat, azar) {
+    return { vistas: [], pendientes: barajar(cat.ids, azar), pos: -1 };
+  }
+
+  function estadoDe(p) {
+    if (p.pos < 0) return "inicio";
+    if (p.pos >= p.vistas.length) return "fin";
+    return "carta";
+  }
+
+  function actual(p) {
+    return estadoDe(p) === "carta" ? p.vistas[p.pos] : null;
+  }
+
+  // Siguiente carta: primero lo que ya salió más adelante (si regresaste),
+  // luego la primera pendiente que esté en juego. Si no hay, se acabó.
+  function avanzar(p, cat, ajustes) {
+    p = copiaPartida(p);
+    for (var i = Math.max(p.pos + 1, 0); i < p.vistas.length; i++) {
+      if (elegible(cat, ajustes, p.vistas[i])) { p.pos = i; return p; }
+    }
+    for (var j = 0; j < p.pendientes.length; j++) {
+      if (elegible(cat, ajustes, p.pendientes[j])) {
+        p.vistas.push(p.pendientes.splice(j, 1)[0]);
+        p.pos = p.vistas.length - 1;
+        return p;
+      }
+    }
+    p.pos = p.vistas.length;
+    return p;
+  }
+
+  function anteriorIndice(p, cat, ajustes) {
+    for (var i = Math.min(p.pos, p.vistas.length) - 1; i >= 0; i--) {
+      if (elegible(cat, ajustes, p.vistas[i])) return i;
+    }
+    return -1;
+  }
+
+  function puedeRegresar(p, cat, ajustes) {
+    return anteriorIndice(p, cat, ajustes) !== -1;
+  }
+
+  // En la primera carta no hay a dónde regresar: la partida no cambia.
+  function regresar(p, cat, ajustes) {
+    var i = anteriorIndice(p, cat, ajustes);
+    p = copiaPartida(p);
+    if (i !== -1) p.pos = i;
+    return p;
+  }
+
+  function conteo(p, cat, ajustes) {
+    var vistas = 0;
+    var hasta = 0;
+    p.vistas.forEach(function (id, i) {
+      if (!elegible(cat, ajustes, id)) return;
+      vistas++;
+      if (i <= p.pos) hasta++;
+    });
+    var pendientes = p.pendientes.filter(function (id) { return elegible(cat, ajustes, id); }).length;
+    return { numero: hasta, total: vistas + pendientes, restantes: pendientes + (vistas - hasta) };
+  }
+
+  // Ajusta la partida al catálogo actual: quita ids que ya no existen (una
+  // carta borrada de cartas.js o un dilema propio borrado) y mete en un lugar
+  // al azar de las pendientes los que nunca se barajaron (cartas nuevas).
+  function reconciliar(p, cat, azar) {
+    azar = azar || Math.random;
+    var visto = {};
+    var estado = estadoDe(p);
+    var cur = actual(p);
+    var vistas = [];
+    var antes = 0;
+    var perdio = false;
+    p.vistas.forEach(function (id, i) {
+      if (!cat.porId[id] || visto[id]) {
+        if (i === p.pos) perdio = true;
+        return;
+      }
+      visto[id] = true;
+      vistas.push(id);
+      if (i < p.pos) antes++;
+    });
+    var pendientes = [];
+    p.pendientes.forEach(function (id) {
+      if (!cat.porId[id] || visto[id]) return;
+      visto[id] = true;
+      pendientes.push(id);
+    });
+    cat.ids.forEach(function (id) {
+      if (visto[id]) return;
+      visto[id] = true;
+      pendientes.splice(Math.floor(azar() * (pendientes.length + 1)), 0, id);
+    });
+    var pos;
+    if (estado === "inicio") pos = -1;
+    else if (estado === "fin") pos = vistas.length;
+    else if (perdio) pos = antes - 1;
+    else pos = vistas.indexOf(cur);
+    return { partida: { vistas: vistas, pendientes: pendientes, pos: pos }, perdioActual: perdio };
+  }
+
+  // Después de cualquier cambio de ajustes o de dilemas: si la carta en la
+  // mesa ya no juega (se borró o se apagó su categoría), sale la siguiente; si
+  // el mazo estaba acabado y ahora hay cartas nuevas, también.
+  function corregir(p, cat, ajustes, azar) {
+    var r = reconciliar(p, cat, azar);
+    var q = r.partida;
+    var estado = estadoDe(q);
+    if (r.perdioActual ||
+        (estado === "carta" && !elegible(cat, ajustes, q.vistas[q.pos])) ||
+        (estado === "fin" && conteo(q, cat, ajustes).restantes > 0)) {
+      q = avanzar(q, cat, ajustes);
+    }
+    return q;
+  }
+
+  function ajustesPorOmision() {
+    return { inactivas: [], propios: true, prueba: false };
+  }
+
+  function sanearAjustes(aj, cat) {
+    var r = ajustesPorOmision();
+    if (!aj || typeof aj !== "object") return r;
+    if (Array.isArray(aj.inactivas)) {
+      r.inactivas = aj.inactivas.filter(function (id, i, lista) {
+        return typeof id === "string" && cat.categoriaPorId[id] && lista.indexOf(id) === i;
+      });
+    }
+    if (cat.categorias.length && r.inactivas.length >= cat.categorias.length) r.inactivas = [];
+    if (typeof aj.propios === "boolean") r.propios = aj.propios;
+    if (typeof aj.prueba === "boolean") r.prueba = aj.prueba;
+    return r;
+  }
+
+  // Siempre queda al menos una categoría encendida: si apagar esta dejaría el
+  // mazo sin categorías, los ajustes no cambian.
+  function alternarCategoria(aj, cat, id, activa) {
+    var r = { inactivas: aj.inactivas.slice(), propios: aj.propios, prueba: aj.prueba };
+    var i = r.inactivas.indexOf(id);
+    if (activa) {
+      if (i !== -1) r.inactivas.splice(i, 1);
+      return r;
+    }
+    if (i !== -1 || !cat.categoriaPorId[id]) return r;
+    if (cat.categorias.length - r.inactivas.length <= 1) return r;
+    r.inactivas.push(id);
+    return r;
+  }
+
+  function validarDilema(a, b) {
+    a = limpio(a);
+    b = limpio(b);
+    if (!a || !b) return { ok: false, error: "Escribe las dos opciones." };
+    if (a.length > MAX_OPCION || b.length > MAX_OPCION) {
+      return { ok: false, error: "Cada opción cabe en " + MAX_OPCION + " caracteres." };
+    }
+    if (a.toLocaleLowerCase("es") === b.toLocaleLowerCase("es")) {
+      return { ok: false, error: "Las dos opciones son iguales: así no hay que elegir." };
+    }
+    return { ok: true, a: a, b: b };
+  }
+
+  function sanearPropios(lista) {
+    var vistos = {};
+    if (!Array.isArray(lista)) return [];
+    return lista.reduce(function (r, p) {
+      if (!p || typeof p.id !== "string" || !/^TU-\d+$/.test(p.id) || vistos[p.id]) return r;
+      var v = validarDilema(p.a, p.b);
+      if (!v.ok) return r;
+      vistos[p.id] = true;
+      r.push({ id: p.id, a: v.a, b: v.b });
+      return r;
+    }, []);
+  }
+
+  function sanearPartida(p) {
+    if (!p || typeof p !== "object" || !Array.isArray(p.vistas) || !Array.isArray(p.pendientes)) return null;
+    var esTexto = function (x) { return typeof x === "string"; };
+    if (!p.vistas.every(esTexto) || !p.pendientes.every(esTexto)) return null;
+    var pos = typeof p.pos === "number" && isFinite(p.pos) ? Math.floor(p.pos) : -1;
+    pos = Math.max(-1, Math.min(pos, p.vistas.length));
+    return { vistas: p.vistas.slice(), pendientes: p.pendientes.slice(), pos: pos };
+  }
+
+  // Convierte lo que venga de localStorage (o nada) en un estado completo y
+  // coherente con el mazo actual.
+  function sanear(datos, mazo, azar) {
+    datos = datos && typeof datos === "object" ? datos : {};
+    var propios = sanearPropios(datos.propios);
+    var cat = catalogo(mazo, propios);
+    var ajustes = sanearAjustes(datos.ajustes, cat);
+    var mayor = propios.reduce(function (n, p) { return Math.max(n, parseInt(p.id.slice(3), 10)); }, 0);
+    var siguiente = typeof datos.siguiente === "number" && datos.siguiente > mayor ? Math.floor(datos.siguiente) : mayor + 1;
+    var marcas = {};
+    if (datos.marcas && typeof datos.marcas === "object") {
+      Object.keys(datos.marcas).forEach(function (id) {
+        if (cat.porId[id] && VEREDICTOS.indexOf(datos.marcas[id]) !== -1) marcas[id] = datos.marcas[id];
+      });
+    }
+    var partida = sanearPartida(datos.partida) || nueva(cat, azar);
+    partida = corregir(partida, cat, ajustes, azar);
+    return { ajustes: ajustes, propios: propios, siguiente: siguiente, marcas: marcas, partida: partida };
+  }
+
+  function textoDilemas(propios) {
+    return propios.map(function (p) { return p.a + " | " + p.b; }).join("\n");
+  }
+
+  function agruparMarcas(marcas, cat) {
+    var grupos = { queda: [], facil: [], fuera: [] };
+    cat.ids.forEach(function (id) {
+      var v = marcas[id];
+      if (grupos[v]) grupos[v].push(cat.porId[id]);
+    });
+    return grupos;
+  }
+
+  var NOMBRE_VEREDICTO = { queda: "Se queda", facil: "Muy fácil", fuera: "Fuera" };
+
+  function textoResultados(marcas, cat, titulo) {
+    var grupos = agruparMarcas(marcas, cat);
+    var partes = [titulo || "Resultados de la prueba"];
+    VEREDICTOS.forEach(function (v) {
+      partes.push("");
+      partes.push(NOMBRE_VEREDICTO[v] + " (" + grupos[v].length + ")");
+      grupos[v].forEach(function (c) { partes.push(c.id + " | " + c.a + " | " + c.b); });
+    });
+    return partes.join("\n");
+  }
+
+  var Logica = {
+    MAX_OPCION: MAX_OPCION,
+    VEREDICTOS: VEREDICTOS,
+    NOMBRE_VEREDICTO: NOMBRE_VEREDICTO,
+    barajar: barajar,
+    catalogo: catalogo,
+    elegible: elegible,
+    nueva: nueva,
+    estadoDe: estadoDe,
+    actual: actual,
+    avanzar: avanzar,
+    regresar: regresar,
+    puedeRegresar: puedeRegresar,
+    conteo: conteo,
+    reconciliar: reconciliar,
+    corregir: corregir,
+    sanearAjustes: sanearAjustes,
+    alternarCategoria: alternarCategoria,
+    validarDilema: validarDilema,
+    sanear: sanear,
+    textoDilemas: textoDilemas,
+    agruparMarcas: agruparMarcas,
+    textoResultados: textoResultados
+  };
+
+  global.AoDLogica = Logica;
+
+  // En Node solo se usa la lógica.
+  if (typeof document === "undefined" || !global.Carta || !global.MAZO) return;
+
+  // =====================================================================
+  // 2. Aplicación
+  // =====================================================================
+
+  var CLAVE = "aod-juego-v1";
+  var MAZO = global.MAZO;
+  var Carta = global.Carta;
+
+  var Almacen = {
+    leer: function () {
+      try {
+        var texto = global.localStorage.getItem(CLAVE);
+        return texto ? JSON.parse(texto) : null;
+      } catch (e) {
+        return null;
+      }
+    },
+    guardar: function (datos) {
+      try {
+        global.localStorage.setItem(CLAVE, JSON.stringify(datos));
+      } catch (e) { /* sin guardar: el juego sigue igual */ }
+    }
+  };
+
+  var E;     // estado: {ajustes, propios, siguiente, marcas, partida}
+  var cat;   // catálogo con los dilemas propios actuales
+  var $ = function (id) { return document.getElementById(id); };
+  var el = {};
+
+  function guardar() {
+    Almacen.guardar({
+      v: 1,
+      ajustes: E.ajustes,
+      propios: E.propios,
+      siguiente: E.siguiente,
+      marcas: E.marcas,
+      partida: E.partida
+    });
+  }
+
+  function rehacerCatalogo() {
+    cat = Logica.catalogo(MAZO, E.propios);
+  }
+
+  function corregirPartida() {
+    E.partida = Logica.corregir(E.partida, cat, E.ajustes);
+  }
+
+  function plural(n, uno, varios) {
+    return n + " " + (n === 1 ? uno : varios);
+  }
+
+  function crear(etiqueta, clase, texto) {
+    var nodo = document.createElement(etiqueta);
+    if (clase) nodo.className = clase;
+    if (texto != null) nodo.textContent = texto;
+    return nodo;
+  }
+
+  // ---------- Movimiento ----------
+
+  var reducir = global.matchMedia ? global.matchMedia("(prefers-reduced-motion: reduce)") : null;
+  var animaciones = [];
+
+  function quieto() {
+    return (reducir && reducir.matches) || typeof Element.prototype.animate !== "function";
+  }
+
+  function animar(nodo, cuadros, opciones, alTerminar) {
+    var anim = nodo.animate(cuadros, opciones);
+    animaciones.push(anim);
+    var listo = false;
+    function fin() {
+      if (listo) return;
+      listo = true;
+      animaciones = animaciones.filter(function (a) { return a !== anim; });
+      if (alTerminar) alTerminar();
+    }
+    anim.onfinish = fin;
+    anim.oncancel = fin;
+    // Una animación no arranca hasta que se pinta un cuadro, y «finish» se
+    // despacha con el cuadro siguiente. Si la página no pinta (pestaña oculta,
+    // marco sin ventana), la carta nueva se quedaría invisible en su primer
+    // cuadro: el reloj la termina de todos modos.
+    global.setTimeout(function () {
+      if (listo) return;
+      try { anim.finish(); } catch (e) { /* ya terminó */ }
+      fin();
+    }, (opciones.duration || 0) + (opciones.delay || 0) + 120);
+    return anim;
+  }
+
+  // La carta que cuenta es siempre la última que se puso en la mesa; las
+  // demás solo están saliendo.
+  var vigente = null;
+
+  // Una transición nueva no espera a la anterior: la termina de golpe. El
+  // evento «finish» llega después (es asíncrono), así que aquí se quita a
+  // mano todo lo que no sea la carta vigente.
+  function terminarTransiciones() {
+    animaciones.slice().forEach(function (a) {
+      try { a.finish(); } catch (e) { a.cancel(); }
+    });
+    animaciones = [];
+    el.hueco.querySelectorAll(".naipe").forEach(function (n) {
+      if (n !== vigente) n.remove();
+    });
+    if (vigente) vigente.style.transform = "";
+  }
+
+  // ---------- Pintar la mesa ----------
+
+  function naipeDe(estado) {
+    var naipe = crear("div", "naipe");
+    if (estado === "inicio") {
+      naipe.classList.add("naipe--reverso");
+      naipe.appendChild(Carta.reverso());
+      return naipe;
+    }
+    if (estado === "fin") {
+      var c = Logica.conteo(E.partida, cat, E.ajustes);
+      naipe.classList.add("naipe--fin");
+      var fin = crear("div", "fin");
+      fin.appendChild(crear("p", "fin__titulo", "Se acabó el mazo."));
+      fin.appendChild(crear("p", "fin__texto", c.total
+        ? "Salieron " + (c.total === 1 ? "la única carta" : "las " + c.total + " cartas") + ". ¿Otra vuelta?"
+        : "No hay cartas en juego."));
+      naipe.appendChild(fin);
+      return naipe;
+    }
+    var carta = cat.porId[Logica.actual(E.partida)];
+    naipe.appendChild(carta.propia
+      ? Carta.propia({ a: carta.a, b: carta.b })
+      : Carta.frente(carta, cat.categoriaPorId[carta.categoria]));
+    return naipe;
+  }
+
+  function pintarMonton(estado, c) {
+    var capas = 0;
+    if (estado === "inicio") capas = Math.min(2, Math.max(0, c.restantes - 1));
+    else if (estado === "carta") capas = Math.min(2, c.restantes);
+    el.monton.dataset.capas = String(capas);
+    el.hueco.dataset.estado = estado;
+  }
+
+  // tipo: "siguiente", "voltear", "anterior", "barajar" o nada (sin transición).
+  // desde: transformación en la que quedó la carta si se venía arrastrando.
+  function pintarMesa(tipo, desde) {
+    terminarTransiciones();
+    var estado = Logica.estadoDe(E.partida);
+    var c = Logica.conteo(E.partida, cat, E.ajustes);
+    var viejo = vigente;
+    var nuevo = naipeDe(estado);
+    vigente = nuevo;
+    pintarMonton(estado, c);
+
+    if (!viejo || !tipo || quieto()) {
+      if (viejo) viejo.remove();
+      el.hueco.appendChild(nuevo);
+      return;
+    }
+
+    viejo.classList.add("naipe--sale");
+    el.hueco.insertBefore(nuevo, viejo);
+    var inicioViejo = desde || viejo.style.transform || "none";
+    viejo.style.transform = "";
+    var quitar = function () { viejo.remove(); };
+
+    if (tipo === "voltear") {
+      animar(viejo, [
+        { transform: "perspective(1600px) rotateY(0deg)" },
+        { transform: "perspective(1600px) rotateY(90deg)" }
+      ], { duration: 150, easing: "cubic-bezier(.5, 0, .9, .5)", fill: "forwards" }, quitar);
+      animar(nuevo, [
+        { transform: "perspective(1600px) rotateY(-90deg)" },
+        { transform: "perspective(1600px) rotateY(0deg)" }
+      ], { duration: 190, delay: 150, easing: "cubic-bezier(.15, .6, .25, 1)", fill: "backwards" });
+      return;
+    }
+
+    if (tipo === "barajar") {
+      animar(viejo, [{ opacity: 1 }, { opacity: 0 }], { duration: 140, fill: "forwards" }, quitar);
+      animar(nuevo, [
+        { transform: "translateY(-5%) scale(1.03) rotate(-2deg)", opacity: 0 },
+        { transform: "none", opacity: 1 }
+      ], { duration: 320, delay: 80, easing: "cubic-bezier(.2, .7, .2, 1)", fill: "backwards" });
+      return;
+    }
+
+    // Siguiente: la carta se va a la izquierda y la nueva sale del mazo.
+    // Anterior: se va a la derecha y la de antes reaparece debajo.
+    var lado = tipo === "anterior" ? 1 : -1;
+    animar(viejo, [
+      { transform: inicioViejo, opacity: 1 },
+      { transform: "translate(" + (lado * 118) + "%, 3%) rotate(" + (lado * 11) + "deg)", opacity: 0 }
+    ], { duration: 260, easing: "cubic-bezier(.4, 0, .8, .4)", fill: "forwards" }, quitar);
+    if (tipo === "anterior" || estado === "fin") {
+      animar(nuevo, [
+        { transform: "scale(.96)", opacity: 0 },
+        { transform: "none", opacity: 1 }
+      ], { duration: 240, delay: 60, easing: "cubic-bezier(.2, .7, .2, 1)", fill: "backwards" });
+    } else {
+      animar(nuevo, [
+        { transform: "perspective(1600px) rotateY(-70deg) scale(.96)", opacity: 0 },
+        { transform: "perspective(1600px) rotateY(0deg) scale(1)", opacity: 1 }
+      ], { duration: 280, delay: 70, easing: "cubic-bezier(.15, .6, .25, 1)", fill: "backwards" });
+    }
+  }
+
+  function pintarControles() {
+    var estado = Logica.estadoDe(E.partida);
+    var c = Logica.conteo(E.partida, cat, E.ajustes);
+    el.app.dataset.vista = estado;
+
+    if (estado === "inicio") el.cuenta.textContent = plural(c.restantes, "carta", "cartas");
+    else el.cuenta.textContent = c.numero + " de " + c.total;
+
+    el.siguienteTexto.textContent = estado === "inicio" ? "Sacar la primera carta"
+      : estado === "fin" ? "Barajar de nuevo" : "Siguiente carta";
+    el.siguiente.classList.toggle("boton--barajar", estado === "fin");
+
+    var atras = Logica.puedeRegresar(E.partida, cat, E.ajustes);
+    el.anterior.setAttribute("aria-disabled", atras ? "false" : "true");
+
+    var enPrueba = E.ajustes.prueba;
+    var marcadas = Object.keys(E.marcas).length;
+    el.chipPrueba.hidden = !enPrueba;
+    el.marcadas.textContent = String(marcadas);
+    el.chipPrueba.setAttribute("aria-label", "Resultados de la prueba: " + plural(marcadas, "carta marcada", "cartas marcadas"));
+    // La fila de prueba ocupa su lugar en todos los estados para que la
+    // carta no cambie de tamaño al pasar del mazo a la primera carta.
+    el.pie.hidden = !enPrueba;
+    el.veredictos.hidden = estado !== "carta";
+    var id = Logica.actual(E.partida);
+    el.veredictos.querySelectorAll("[data-veredicto]").forEach(function (b) {
+      b.setAttribute("aria-pressed", id && E.marcas[id] === b.dataset.veredicto ? "true" : "false");
+    });
+    el.finPrueba.hidden = estado !== "fin";
+  }
+
+  function anunciar() {
+    var estado = Logica.estadoDe(E.partida);
+    var c = Logica.conteo(E.partida, cat, E.ajustes);
+    var texto;
+    if (estado === "inicio") {
+      texto = "Mazo barajado: " + plural(c.restantes, "carta", "cartas") + ".";
+    } else if (estado === "fin") {
+      texto = "Se acabó el mazo. Puedes barajar de nuevo.";
+    } else {
+      var carta = cat.porId[Logica.actual(E.partida)];
+      var nombre = carta.propia ? "Dilema propio" : cat.categoriaPorId[carta.categoria].nombre;
+      texto = "Carta " + c.numero + " de " + c.total + ". " + nombre + ". ¿Qué prefieres: " +
+        limpio(carta.a) + " o " + limpio(carta.b) + "?";
+    }
+    // Vaciar y volver a escribir hace que el lector repita aunque el texto sea igual.
+    el.anuncio.textContent = "";
+    global.setTimeout(function () { el.anuncio.textContent = texto; }, 60);
+  }
+
+  function pintar(tipo, desde, decir) {
+    pintarMesa(tipo, desde);
+    pintarControles();
+    if (decir) anunciar();
+  }
+
+  // ---------- Jugar ----------
+
+  function siguiente(desde) {
+    var antes = Logica.estadoDe(E.partida);
+    if (antes === "fin") { barajarDeNuevo(); return; }
+    E.partida = Logica.avanzar(E.partida, cat, E.ajustes);
+    guardar();
+    pedirPantalla();
+    pintar(antes === "inicio" ? "voltear" : "siguiente", desde, true);
+  }
+
+  function anterior(desde) {
+    if (!Logica.puedeRegresar(E.partida, cat, E.ajustes)) return false;
+    E.partida = Logica.regresar(E.partida, cat, E.ajustes);
+    guardar();
+    pintar("anterior", desde, true);
+    return true;
+  }
+
+  function barajarDeNuevo() {
+    E.partida = Logica.nueva(cat);
+    guardar();
+    pintar("barajar", null, true);
+  }
+
+  function marcar(veredicto) {
+    var id = Logica.actual(E.partida);
+    if (!id) return;
+    if (E.marcas[id] === veredicto) delete E.marcas[id];
+    else E.marcas[id] = veredicto;
+    guardar();
+    pintarControles();
+  }
+
+  // ---------- Gestos sobre la carta ----------
+
+  var gesto = null;
+
+  function alPresionar(ev) {
+    if (ev.pointerType === "mouse" && ev.button !== 0) return;
+    if (document.querySelector("dialog[open]")) return;
+    terminarTransiciones();
+    gesto = {
+      id: ev.pointerId, x: ev.clientX, y: ev.clientY, dx: 0, arrastra: false,
+      naipe: vigente, enCarta: el.hueco.contains(ev.target)
+    };
+  }
+
+  function alMover(ev) {
+    if (!gesto || ev.pointerId !== gesto.id) return;
+    var dx = ev.clientX - gesto.x;
+    var dy = ev.clientY - gesto.y;
+    if (!gesto.arrastra) {
+      if (Math.abs(dx) < 10 || Math.abs(dx) < Math.abs(dy)) return;
+      gesto.arrastra = true;
+      try { el.escenario.setPointerCapture(ev.pointerId); } catch (e) { /* no importa */ }
+    }
+    var estado = Logica.estadoDe(E.partida);
+    // Hacia donde no hay carta (a la derecha sin anterior, a la izquierda
+    // con el mazo acabado), la carta se resiste: se mueve poco y regresa.
+    var libre = dx < 0 ? estado !== "fin" : Logica.puedeRegresar(E.partida, cat, E.ajustes);
+    gesto.dx = libre ? dx : dx * 0.25;
+    gesto.libre = libre;
+    if (gesto.naipe) {
+      gesto.naipe.style.transform = "translateX(" + gesto.dx + "px) rotate(" + (gesto.dx * 0.035) + "deg)";
+    }
+  }
+
+  function regresarAlLugar(naipe) {
+    if (!naipe) return;
+    var desde = naipe.style.transform;
+    naipe.style.transform = "";
+    if (!desde || quieto()) return;
+    animar(naipe, [{ transform: desde }, { transform: "none" }], { duration: 200, easing: "cubic-bezier(.2, .7, .2, 1)" });
+  }
+
+  function alSoltar(ev) {
+    if (!gesto || ev.pointerId !== gesto.id) return;
+    var g = gesto;
+    gesto = null;
+    if (!g.arrastra) {
+      var movio = Math.abs(ev.clientX - g.x) > 10 || Math.abs(ev.clientY - g.y) > 10;
+      // Tocar la carta saca la siguiente; tocar el aviso de fin no baraja
+      // (un toque distraído no debería reiniciar la partida).
+      if (!movio && g.enCarta && Logica.estadoDe(E.partida) !== "fin") siguiente();
+      return;
+    }
+    var umbral = Math.min(80, el.hueco.offsetWidth * 0.22);
+    var desde = g.naipe ? g.naipe.style.transform : "";
+    if (g.libre && g.dx <= -umbral) { siguiente(desde); return; }
+    if (g.libre && g.dx >= umbral && anterior(desde)) return;
+    regresarAlLugar(g.naipe);
+  }
+
+  function alCancelar(ev) {
+    if (!gesto || ev.pointerId !== gesto.id) return;
+    regresarAlLugar(gesto.naipe);
+    gesto = null;
+  }
+
+  function alTeclear(ev) {
+    if (ev.defaultPrevented || ev.altKey || ev.ctrlKey || ev.metaKey) return;
+    if (document.querySelector("dialog[open]")) return;
+    var t = ev.target;
+    if (t && t.closest && t.closest("input, textarea, select, [contenteditable]")) return;
+    var enBoton = t && t.closest && t.closest("button, a, summary");
+    if (ev.key === "ArrowRight" || ((ev.key === " " || ev.key === "Spacebar") && !enBoton)) {
+      ev.preventDefault();
+      siguiente();
+    } else if (ev.key === "ArrowLeft") {
+      ev.preventDefault();
+      anterior();
+    }
+  }
+
+  // ---------- Pantalla encendida ----------
+
+  var candado = null;
+
+  function pedirPantalla() {
+    if (candado || !global.navigator || !navigator.wakeLock || document.visibilityState !== "visible") return;
+    try {
+      navigator.wakeLock.request("screen").then(function (c) {
+        candado = c;
+        c.addEventListener("release", function () { candado = null; });
+      }).catch(function () { /* el navegador dijo que no: se juega igual */ });
+    } catch (e) { /* sin wake lock */ }
+  }
+
+  // ---------- Hojas ----------
+
+  var abridor = null;
+
+  function abrir(hoja, desde) {
+    abridor = desde || document.activeElement;
+    var abiertas = document.querySelectorAll("dialog[open]");
+    abiertas.forEach(function (d) { if (d !== hoja) cerrarSinFoco(d); });
+    if (hoja.id === "hoja-mazo") pintarHojaMazo();
+    if (hoja.id === "hoja-dilemas") pintarHojaDilemas();
+    if (hoja.id === "hoja-resultados") pintarResultados();
+    if (hoja.open) return;
+    if (typeof hoja.showModal === "function") {
+      try { hoja.showModal(); } catch (e) { hoja.setAttribute("open", ""); }
+    } else {
+      hoja.setAttribute("open", "");
+    }
+    hoja.scrollTop = 0;
+    var primero = hoja.querySelector("[data-enfoque]") || hoja.querySelector(".hoja__titulo");
+    if (primero) {
+      if (!primero.hasAttribute("tabindex") && primero.matches(".hoja__titulo")) primero.setAttribute("tabindex", "-1");
+      primero.focus({ preventScroll: true });
+    }
+  }
+
+  function cerrarSinFoco(hoja) {
+    hoja.dataset.sinFoco = "si";
+    if (typeof hoja.close === "function") hoja.close();
+    else { hoja.removeAttribute("open"); alCerrar(hoja); }
+  }
+
+  function cerrar(hoja) {
+    if (typeof hoja.close === "function") hoja.close();
+    else { hoja.removeAttribute("open"); alCerrar(hoja); }
+  }
+
+  function alCerrar(hoja) {
+    var sinFoco = hoja.dataset.sinFoco === "si";
+    delete hoja.dataset.sinFoco;
+    hoja.querySelectorAll(".confirmar").forEach(function (c) { c.hidden = true; });
+    hoja.querySelectorAll("[data-pide-confirmar]").forEach(function (b) { b.hidden = false; });
+    if (sinFoco) return;
+    var destino = abridor && document.contains(abridor) && !abridor.closest("dialog") ? abridor : el.siguiente;
+    abridor = null;
+    try { destino.focus({ preventScroll: true }); } catch (e) { /* nada */ }
+  }
+
+  // ---------- Hoja «Mazo» ----------
+
+  function marcaCasilla() {
+    return '<svg class="casilla__marca" viewBox="0 0 24 24" aria-hidden="true" focusable="false">' +
+      '<path d="M4.6 12.8C6.4 14.2 8 15.9 9.4 18.1 12.2 12.6 15.6 8.1 20.1 4.4"/></svg>';
+  }
+
+  function construirCategorias() {
+    var lista = el.listaCategorias;
+    lista.textContent = "";
+    cat.categorias.forEach(function (c) {
+      var fila = crear("label", "casilla");
+      fila.setAttribute("for", "cat-" + c.id);
+      var input = document.createElement("input");
+      input.type = "checkbox";
+      input.id = "cat-" + c.id;
+      input.dataset.categoria = c.id;
+      fila.appendChild(input);
+      fila.insertAdjacentHTML("beforeend", marcaCasilla());
+      var papel = crear("span", "casilla__papel");
+      papel.style.setProperty("--c", "var(--papel-" + c.id.replace(/[^a-z0-9-]/gi, "") + ", var(--servilleta))");
+      papel.setAttribute("aria-hidden", "true");
+      fila.appendChild(papel);
+      fila.appendChild(crear("span", "casilla__texto", c.nombre));
+      var n = crear("span", "casilla__cuenta", String(c.total));
+      n.setAttribute("aria-label", plural(c.total, "carta", "cartas"));
+      fila.appendChild(n);
+      lista.appendChild(fila);
+    });
+  }
+
+  function pintarHojaMazo() {
+    var activas = cat.categorias.length - E.ajustes.inactivas.length;
+    el.listaCategorias.querySelectorAll("input[data-categoria]").forEach(function (input) {
+      var activa = E.ajustes.inactivas.indexOf(input.dataset.categoria) === -1;
+      input.checked = activa;
+      input.closest(".casilla").classList.toggle("casilla--ultima", activa && activas === 1);
+    });
+    el.incluirPropios.checked = E.ajustes.propios;
+    var n = E.propios.length;
+    el.cuantosPropios.textContent = n ? String(n) : "";
+    el.cuantosPropios.setAttribute("aria-label", plural(n, "dilema", "dilemas"));
+    el.sinPropios.hidden = n > 0;
+    el.modoPrueba.checked = E.ajustes.prueba;
+    el.irAResultados.hidden = !E.ajustes.prueba;
+    var c = Logica.conteo(E.partida, cat, E.ajustes);
+    el.resumenMazo.textContent = "En juego: " + plural(c.total, "carta", "cartas") +
+      ". Faltan " + c.restantes + " por salir.";
+  }
+
+  function cambiarAjustes(nuevos) {
+    E.ajustes = nuevos;
+    corregirPartida();
+    guardar();
+    pintarMesa(null);
+    pintarControles();
+    pintarHojaMazo();
+  }
+
+  function alCambiarCategoria(ev) {
+    var input = ev.target;
+    if (!input.dataset || !input.dataset.categoria) return;
+    var nuevos = Logica.alternarCategoria(E.ajustes, cat, input.dataset.categoria, input.checked);
+    if (!input.checked && nuevos.inactivas.indexOf(input.dataset.categoria) === -1) {
+      input.checked = true;
+      el.notaCategorias.textContent = "";
+      global.setTimeout(function () {
+        el.notaCategorias.textContent = "Al menos una categoría se queda en el mazo.";
+      }, 30);
+      return;
+    }
+    el.notaCategorias.textContent = "";
+    cambiarAjustes(nuevos);
+  }
+
+  // ---------- Hoja «Tus dilemas» ----------
+
+  var editando = null;
+
+  function vistaPrevia() {
+    var a = limpio(el.dilemaA.value);
+    var b = limpio(el.dilemaB.value);
+    var carta = Carta.propia({ a: a || "algo difícil", b: b || "algo igual de difícil" });
+    carta.classList.toggle("vista--sin-a", !a);
+    carta.classList.toggle("vista--sin-b", !b);
+    el.vistaDilema.textContent = "";
+    el.vistaDilema.appendChild(carta);
+    el.contadorA.textContent = el.dilemaA.value.length + "/" + Logica.MAX_OPCION;
+    el.contadorB.textContent = el.dilemaB.value.length + "/" + Logica.MAX_OPCION;
+  }
+
+  function limpiarFormulario() {
+    editando = null;
+    el.dilemaA.value = "";
+    el.dilemaB.value = "";
+    el.errorDilema.textContent = "";
+    el.guardarDilema.textContent = "Guardar dilema";
+    el.cancelarEdicion.hidden = true;
+    el.formDilema.classList.remove("editor--editando");
+    vistaPrevia();
+  }
+
+  function pintarHojaDilemas() {
+    var lista = el.listaDilemas;
+    lista.textContent = "";
+    E.propios.forEach(function (p) {
+      var li = crear("li", "dilema");
+      li.dataset.id = p.id;
+      var texto = crear("p", "dilema__texto");
+      texto.appendChild(crear("span", "dilema__a", p.a));
+      texto.appendChild(crear("span", "dilema__o", " o "));
+      texto.appendChild(crear("span", "dilema__b", p.b));
+      li.appendChild(texto);
+
+      var acciones = crear("div", "dilema__acciones");
+      var editar = crear("button", "boton boton--chico", "Editar");
+      editar.type = "button";
+      editar.dataset.accion = "editar";
+      editar.setAttribute("aria-label", "Editar: " + p.a + " o " + p.b);
+      var borrar = crear("button", "boton boton--chico", "Borrar");
+      borrar.type = "button";
+      borrar.dataset.accion = "borrar";
+      borrar.dataset.pideConfirmar = "";
+      borrar.setAttribute("aria-label", "Borrar: " + p.a + " o " + p.b);
+      acciones.appendChild(editar);
+      acciones.appendChild(borrar);
+      li.appendChild(acciones);
+
+      var confirmar = crear("div", "confirmar");
+      confirmar.hidden = true;
+      confirmar.setAttribute("role", "group");
+      confirmar.setAttribute("aria-label", "Confirmar borrado");
+      confirmar.appendChild(crear("p", "confirmar__pregunta", "¿Borrar este dilema?"));
+      var si = crear("button", "boton boton--chico boton--fuerte", "Sí, borrar");
+      si.type = "button";
+      si.dataset.accion = "si-borrar";
+      var no = crear("button", "boton boton--chico", "No");
+      no.type = "button";
+      no.dataset.accion = "no-borrar";
+      confirmar.appendChild(si);
+      confirmar.appendChild(no);
+      li.appendChild(confirmar);
+      lista.appendChild(li);
+    });
+    var n = E.propios.length;
+    el.cuantosGuardados.textContent = n ? "(" + n + ")" : "";
+    el.sinDilemas.hidden = n > 0;
+    el.copiarDilemas.hidden = n === 0;
+    el.propiosApagados.hidden = !(n > 0 && !E.ajustes.propios);
+    if (n === 0) {
+      el.copiaDilemas.hidden = true;
+      el.estadoCopiaDilemas.textContent = "";
+    }
+    if (editando && !E.propios.some(function (p) { return p.id === editando; })) limpiarFormulario();
+    vistaPrevia();
+  }
+
+  function alGuardarDilema(ev) {
+    ev.preventDefault();
+    var v = Logica.validarDilema(el.dilemaA.value, el.dilemaB.value);
+    if (!v.ok) {
+      el.errorDilema.textContent = v.error;
+      (limpio(el.dilemaA.value) ? el.dilemaB : el.dilemaA).focus();
+      return;
+    }
+    var nuevo = !editando;
+    if (editando) {
+      E.propios = E.propios.map(function (p) { return p.id === editando ? { id: p.id, a: v.a, b: v.b } : p; });
+    } else {
+      E.propios = E.propios.concat([{ id: "TU-" + E.siguiente, a: v.a, b: v.b }]);
+      E.siguiente++;
+    }
+    rehacerCatalogo();
+    corregirPartida();
+    guardar();
+    limpiarFormulario();
+    pintarHojaDilemas();
+    pintarMesa(null);
+    pintarControles();
+    el.estadoDilema.textContent = "";
+    var aviso = nuevo
+      ? (E.ajustes.propios ? "Guardado. Ya está en el mazo." : "Guardado. Para que salga, enciende «Mezclar tus dilemas» en Mazo.")
+      : "Cambios guardados.";
+    global.setTimeout(function () { el.estadoDilema.textContent = aviso; }, 30);
+    el.dilemaA.focus();
+  }
+
+  function editarDilema(id) {
+    var p = E.propios.filter(function (x) { return x.id === id; })[0];
+    if (!p) return;
+    editando = id;
+    el.dilemaA.value = p.a;
+    el.dilemaB.value = p.b;
+    el.errorDilema.textContent = "";
+    el.estadoDilema.textContent = "";
+    el.guardarDilema.textContent = "Guardar cambios";
+    el.cancelarEdicion.hidden = false;
+    el.formDilema.classList.add("editor--editando");
+    vistaPrevia();
+    el.formDilema.scrollIntoView({ block: "start", behavior: quieto() ? "auto" : "smooth" });
+    el.dilemaA.focus({ preventScroll: true });
+  }
+
+  function borrarDilema(id) {
+    E.propios = E.propios.filter(function (p) { return p.id !== id; });
+    delete E.marcas[id];
+    if (editando === id) limpiarFormulario();
+    rehacerCatalogo();
+    corregirPartida();
+    guardar();
+    pintarHojaDilemas();
+    pintarMesa(null);
+    pintarControles();
+    el.estadoDilema.textContent = "";
+    global.setTimeout(function () { el.estadoDilema.textContent = "Dilema borrado."; }, 30);
+    var primero = el.listaDilemas.querySelector("button");
+    (primero || el.dilemaA).focus({ preventScroll: true });
+  }
+
+  function alClicEnLista(ev) {
+    var boton = ev.target.closest("button[data-accion]");
+    if (!boton) return;
+    var fila = boton.closest(".dilema");
+    var id = fila && fila.dataset.id;
+    var confirmar = fila.querySelector(".confirmar");
+    var accion = boton.dataset.accion;
+    if (accion === "editar") editarDilema(id);
+    else if (accion === "borrar") {
+      confirmar.hidden = false;
+      boton.hidden = true;
+      confirmar.querySelector("[data-accion='no-borrar']").focus();
+    } else if (accion === "no-borrar") {
+      confirmar.hidden = true;
+      var borrar = fila.querySelector("[data-accion='borrar']");
+      borrar.hidden = false;
+      borrar.focus();
+    } else if (accion === "si-borrar") borrarDilema(id);
+  }
+
+  // ---------- Copiar ----------
+
+  function copiar(texto, estado, caja) {
+    caja.hidden = true;
+    estado.textContent = "";
+    var listo = false;
+    var espera = 0;
+    function falla() {
+      if (listo) return;
+      listo = true;
+      global.clearTimeout(espera);
+      caja.value = texto;
+      caja.hidden = false;
+      caja.focus();
+      caja.select();
+      estado.textContent = "No se pudo copiar directo. Aquí está el texto: selecciónalo y cópialo.";
+    }
+    function bien() {
+      global.clearTimeout(espera);
+      caja.hidden = true;
+      estado.textContent = "Copiado.";
+      listo = true;
+    }
+    try {
+      if (!global.navigator || !navigator.clipboard || !navigator.clipboard.writeText) { falla(); return; }
+      // Hay navegadores incrustados que dejan la promesa pendiente sin
+      // contestar: si tarda, se muestra el texto de todos modos.
+      espera = global.setTimeout(falla, 1200);
+      navigator.clipboard.writeText(texto).then(bien, falla);
+    } catch (e) {
+      falla();
+    }
+  }
+
+  // ---------- Resultados de la prueba ----------
+
+  function pintarResultados() {
+    var grupos = Logica.agruparMarcas(E.marcas, cat);
+    var total = Logica.VEREDICTOS.reduce(function (n, v) { return n + grupos[v].length; }, 0);
+    el.resumenResultados.textContent = plural(total, "carta marcada", "cartas marcadas") +
+      " de " + cat.ids.length + ".";
+    el.listaResultados.textContent = "";
+    Logica.VEREDICTOS.forEach(function (v) {
+      var seccion = crear("section", "veredicto veredicto--" + v);
+      var titulo = crear("h3", "veredicto__titulo", Logica.NOMBRE_VEREDICTO[v] + " ");
+      titulo.appendChild(crear("span", "veredicto__cuenta", "(" + grupos[v].length + ")"));
+      seccion.appendChild(titulo);
+      if (grupos[v].length) {
+        var ul = crear("ul", "veredicto__lista");
+        grupos[v].forEach(function (c) {
+          var li = crear("li");
+          li.appendChild(crear("span", "veredicto__id", c.id));
+          var t = crear("span", "veredicto__texto");
+          t.appendChild(document.createTextNode(c.a));
+          t.appendChild(crear("span", "dilema__o", " o "));
+          t.appendChild(document.createTextNode(c.b));
+          li.appendChild(t);
+          ul.appendChild(li);
+        });
+        seccion.appendChild(ul);
+      } else {
+        seccion.appendChild(crear("p", "nota", "Ninguna."));
+      }
+      el.listaResultados.appendChild(seccion);
+    });
+    el.sinMarcas.hidden = total > 0;
+    el.accionesResultados.hidden = total === 0;
+    el.listaResultados.hidden = total === 0;
+    el.preguntaBorrarMarcas.textContent = "¿Borrar " + (total === 1 ? "la marca" : "las " + total + " marcas") + "? No se puede deshacer.";
+    if (total === 0) {
+      el.copiaResultados.hidden = true;
+      el.estadoCopiaResultados.textContent = "";
+    }
+  }
+
+  // ---------- Arranque ----------
+
+  function referencias() {
+    [
+      "app", "logo", "cuenta", "chip-prueba", "marcadas", "escenario", "hueco", "monton", "anuncio",
+      "pie", "veredictos", "anterior", "siguiente", "siguiente-texto", "fin-prueba",
+      "hoja-mazo", "hoja-dilemas", "hoja-reglas", "hoja-resultados",
+      "lista-categorias", "nota-categorias", "incluir-propios", "cuantos-propios", "sin-propios",
+      "resumen-mazo", "barajar", "modo-prueba", "ir-a-resultados", "ir-a-dilemas",
+      "form-dilema", "dilema-a", "dilema-b", "contador-a", "contador-b", "vista-dilema", "error-dilema",
+      "estado-dilema", "guardar-dilema", "cancelar-edicion", "lista-dilemas", "cuantos-guardados",
+      "sin-dilemas", "propios-apagados", "copiar-dilemas", "estado-copia-dilemas", "copia-dilemas",
+      "reglas-carta", "resumen-resultados", "lista-resultados", "sin-marcas", "acciones-resultados",
+      "copiar-resultados", "estado-copia-resultados", "copia-resultados", "borrar-marcas",
+      "confirmar-marcas", "pregunta-borrar-marcas", "si-borrar-marcas", "no-borrar-marcas"
+    ].forEach(function (id) {
+      var nombre = id.replace(/-([a-z])/g, function (m, l) { return l.toUpperCase(); });
+      el[nombre] = $(id);
+    });
+  }
+
+  function escuchar() {
+    el.escenario.addEventListener("pointerdown", alPresionar);
+    el.escenario.addEventListener("pointermove", alMover);
+    el.escenario.addEventListener("pointerup", alSoltar);
+    el.escenario.addEventListener("pointercancel", alCancelar);
+    el.escenario.addEventListener("lostpointercapture", alCancelar);
+    document.addEventListener("keydown", alTeclear);
+
+    el.siguiente.addEventListener("click", function () { siguiente(); });
+    el.anterior.addEventListener("click", function () { anterior(); });
+    el.veredictos.addEventListener("click", function (ev) {
+      var b = ev.target.closest("[data-veredicto]");
+      if (b) marcar(b.dataset.veredicto);
+    });
+
+    document.querySelectorAll("[data-abre]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        var hoja = $(b.dataset.abre);
+        var dentro = b.closest("dialog");
+        abrir(hoja, dentro ? abridor : b);
+      });
+    });
+
+    document.querySelectorAll("dialog.hoja").forEach(function (hoja) {
+      hoja.addEventListener("close", function () { alCerrar(hoja); });
+      // Un clic fuera del papel cae en el propio <dialog> (su fondo).
+      hoja.addEventListener("click", function (ev) { if (ev.target === hoja) cerrar(hoja); });
+      hoja.querySelectorAll("[data-cerrar]").forEach(function (b) {
+        b.addEventListener("click", function () { cerrar(hoja); });
+      });
+    });
+
+    el.listaCategorias.addEventListener("change", alCambiarCategoria);
+    el.incluirPropios.addEventListener("change", function () {
+      cambiarAjustes({ inactivas: E.ajustes.inactivas.slice(), propios: el.incluirPropios.checked, prueba: E.ajustes.prueba });
+    });
+    el.modoPrueba.addEventListener("change", function () {
+      cambiarAjustes({ inactivas: E.ajustes.inactivas.slice(), propios: E.ajustes.propios, prueba: el.modoPrueba.checked });
+    });
+    el.barajar.addEventListener("click", function () {
+      cerrarSinFoco(el.hojaMazo);
+      barajarDeNuevo();
+      el.siguiente.focus({ preventScroll: true });
+    });
+
+    el.formDilema.addEventListener("submit", alGuardarDilema);
+    el.dilemaA.addEventListener("input", function () { el.errorDilema.textContent = ""; vistaPrevia(); });
+    el.dilemaB.addEventListener("input", function () { el.errorDilema.textContent = ""; vistaPrevia(); });
+    el.cancelarEdicion.addEventListener("click", function () { limpiarFormulario(); el.dilemaA.focus(); });
+    el.listaDilemas.addEventListener("click", alClicEnLista);
+    el.copiarDilemas.addEventListener("click", function () {
+      copiar(Logica.textoDilemas(E.propios), el.estadoCopiaDilemas, el.copiaDilemas);
+    });
+
+    el.copiarResultados.addEventListener("click", function () {
+      copiar(Logica.textoResultados(E.marcas, cat, "Resultados de la prueba · " + (MAZO.nombre || "A o D")),
+        el.estadoCopiaResultados, el.copiaResultados);
+    });
+    el.borrarMarcas.addEventListener("click", function () {
+      el.confirmarMarcas.hidden = false;
+      el.borrarMarcas.hidden = true;
+      el.noBorrarMarcas.focus();
+    });
+    el.noBorrarMarcas.addEventListener("click", function () {
+      el.confirmarMarcas.hidden = true;
+      el.borrarMarcas.hidden = false;
+      el.borrarMarcas.focus();
+    });
+    el.siBorrarMarcas.addEventListener("click", function () {
+      E.marcas = {};
+      guardar();
+      el.confirmarMarcas.hidden = true;
+      el.borrarMarcas.hidden = false;
+      pintarResultados();
+      pintarControles();
+      el.sinMarcas.focus();
+    });
+
+    document.addEventListener("visibilitychange", function () {
+      if (document.visibilityState === "visible" && Logica.estadoDe(E.partida) !== "inicio") pedirPantalla();
+    });
+  }
+
+  function iniciar() {
+    if (!document.documentElement.lang) document.documentElement.lang = "es";
+    referencias();
+    if (!el.app) return;
+    E = Logica.sanear(Almacen.leer(), MAZO);
+    rehacerCatalogo();
+    guardar();
+    el.logo.appendChild(Carta.logotipo({ variante: "marca" }));
+    el.reglasCarta.appendChild(Carta.reglas());
+    construirCategorias();
+    escuchar();
+    pintar(null, null, false);
+    vistaPrevia();
+  }
+
+  global.AoD = {
+    // Para páginas de prueba: el estado actual sin tocar nada.
+    estado: function () { return JSON.parse(JSON.stringify(E)); },
+    siguiente: function () { siguiente(); },
+    anterior: function () { anterior(); },
+    barajar: barajarDeNuevo
+  };
+
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", iniciar);
+  else iniciar();
+})(typeof window !== "undefined" ? window : globalThis);
+</script>

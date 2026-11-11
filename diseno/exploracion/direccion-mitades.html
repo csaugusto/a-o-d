@@ -1,0 +1,999 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>Cilantro o Perejil · Lámina de identidad · La carta partida en dos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&amp;family=Chivo+Mono:wght@300..700&amp;display=swap" rel="stylesheet">
+<style>
+/* ==========================================================================
+   1. Fichas de diseño (colores y familias)
+   ========================================================================== */
+:root {
+  /* Marca: dos verdes casi iguales que, juntos, obligan a elegir */
+  --cilantro: #98DE4E;
+  --perejil: #0B5239;
+  /* Pares de categoría: un claro y un oscuro que no deberían llevarse */
+  --mango: #FFB62E;
+  --betabel: #7B0F4E;
+  --granate: #8C1220;
+  --cielo: #86CDFF;
+  --lila: #C9AEFF;
+  --chocolate: #4A2010;
+  --noche: #16175A;
+  --chicle: #FF8FCF;
+  --coral: #FF8266;
+  --petroleo: #06384C;
+  --moreton: #3D1C63;
+  --bilis: #D6D24A;
+  /* Neutros */
+  --papel: #FFFFFF;
+  --tinta: #16171C;
+  --mesa: #E8E9EC;
+  --gris: #565861;
+  /* Familias, siempre con pila de respaldo */
+  --voz: "Archivo", "Arial Black", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --dato: "Chivo Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+
+/* ==========================================================================
+   2. Componente carta
+   Proporción 63:88. Todo lo de adentro se mide en cqw (1cqw = 1 % del ancho
+   de la carta; 1 mm = 1.5873cqw), así que se ve igual a 320 px o a 63 mm.
+   --a es el color del campo de arriba y --b el del campo de abajo; el texto
+   de cada campo usa el color del otro.
+   ========================================================================== */
+.carta {
+  --a: var(--papel);
+  --b: var(--tinta);
+  --o: 22cqw;          /* diámetro de la «o» */
+  --sangrado: 0cqw;    /* 4.762cqw = 3 mm con .carta--sangrado */
+  container-type: inline-size;
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 63 / 88;
+  margin: 0;
+}
+.carta__cara {
+  position: absolute;
+  inset: calc(-1 * var(--sangrado));
+  border-radius: 4.76cqw;   /* 3 mm */
+  overflow: hidden;
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+  /* El fondo es una sola pintura partida a la mitad: sin marcos ni filetes,
+     puede crecer como sangrado sin perder nada */
+  background: linear-gradient(to bottom, var(--a) 50%, var(--b) 50%);
+  font-family: var(--voz);
+  font-synthesis: none;
+  -webkit-font-smoothing: antialiased;
+}
+.carta__campo {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: calc(8cqw + var(--sangrado));   /* zona segura: 5 mm */
+}
+.carta__campo--a {
+  color: var(--b);
+  padding-bottom: calc(var(--o) / 2 + 2.4cqw);
+}
+.carta__campo--b {
+  color: var(--a);
+  padding-top: calc(var(--o) / 2 + 2.4cqw);
+}
+.carta__arranque {
+  margin: 0;
+  font-size: 5.2cqw;
+  line-height: 1;
+  font-weight: 800;
+  font-stretch: 100%;
+  letter-spacing: -0.005em;
+  padding-bottom: 3cqw;   /* aire mínimo antes de la opción A */
+}
+.carta__opcion {
+  margin: 0;
+  font-weight: 900;
+  text-wrap: balance;
+  /* red de seguridad: solo una palabra larguísima que no cabe en su renglón
+     se parte con guion (el límite de letras lo pone cada nivel) */
+  hyphens: auto;
+  overflow-wrap: break-word;
+}
+/* Las dos opciones se pegan a la bisagra: A cuelga hacia abajo, B arranca arriba */
+.carta__campo--a .carta__opcion { margin-top: auto; }
+/* El cierre de la pregunta es tipográfico: el dato de la opción queda limpio */
+.carta__opcion--b::after { content: "?"; }
+
+/* La «o»: bisagra sobre la costura, mitad de cada color */
+.carta__o {
+  position: absolute;
+  top: 50%;
+  right: calc(8cqw + var(--sangrado));
+  width: var(--o);
+  height: var(--o);
+  margin: 0;
+  transform: translateY(-50%);
+}
+.carta__o svg { display: block; width: 100%; height: 100%; }
+.carta__o-arriba { fill: var(--b); }
+.carta__o-abajo { fill: var(--a); }
+.carta__o-texto {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.carta__pie {
+  margin: auto 0 0;
+  padding-top: 2.6cqw;    /* aire mínimo después de la opción B */
+  padding-bottom: 0.4cqw; /* las descendentes tampoco pisan la zona segura */
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 4cqw;
+  font-family: var(--dato);
+  font-size: 3.4cqw;
+  line-height: 1;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+.carta__codigo { font-weight: 700; letter-spacing: 0.06em; white-space: nowrap; }
+.carta__categoria { text-align: right; }
+
+/* Tres niveles según la opción más larga de la carta.
+   Cuanto más hay que decir, más se aprieta la letra y más se encoge la «o»,
+   que nunca baja de un tercio del ancho útil. */
+.t-corta { --o: 34cqw; }   /* hasta 14 caracteres */
+.t-corta .carta__opcion {
+  font-size: 14.8cqw;      /* dos renglones como máximo */
+  line-height: 0.95;
+  font-stretch: 80%;
+  letter-spacing: -0.025em;
+  hyphenate-limit-chars: 9 4 4;
+}
+.t-media { --o: 26cqw; }   /* de 15 a 34 caracteres */
+.t-media .carta__opcion {
+  font-size: 10cqw;        /* hasta cuatro renglones */
+  line-height: 1;
+  font-weight: 850;
+  font-stretch: 80%;
+  letter-spacing: -0.012em;
+  hyphenate-limit-chars: 15 5 5;
+}
+.t-larga { --o: 22cqw; }   /* de 35 a 60 caracteres */
+.t-larga .carta__opcion {
+  font-size: 9cqw;         /* hasta cuatro renglones */
+  line-height: 1;
+  font-weight: 800;
+  font-stretch: 78%;
+  letter-spacing: -0.005em;
+  hyphenate-limit-chars: 18 6 6;
+}
+
+/* Categorías: cada una es un par */
+.carta--comida,      .tema-comida      { --a: var(--mango);   --b: var(--betabel); }
+.carta--destinos,    .tema-destinos    { --a: var(--granate); --b: var(--cielo); }
+.carta--familia,     .tema-familia     { --a: var(--lila);    --b: var(--chocolate); }
+.carta--celebrities, .tema-celebrities { --a: var(--noche);   --b: var(--chicle); }
+.carta--dilemas,     .tema-dilemas     { --a: var(--coral);   --b: var(--petroleo); }
+.carta--asco,        .tema-asco        { --a: var(--moreton); --b: var(--bilis); }
+
+/* Carta en blanco: dos mitades claras para escribir con pluma */
+.carta--blanca { --a: var(--papel); --b: var(--cilantro); --o: 20cqw; }
+.carta--blanca .carta__campo { color: var(--perejil); }
+.carta--blanca .carta__campo--a { padding-bottom: calc(var(--o) / 2 + 4.4cqw); }
+.carta--blanca .carta__campo--b { padding-top: calc(var(--o) / 2 + 4.4cqw); }
+.carta--blanca .carta__o-arriba,
+.carta--blanca .carta__o-abajo { fill: var(--perejil); }
+.carta__renglones { display: grid; grid-auto-rows: 12cqw; }   /* renglón cada 7.5 mm */
+.carta__campo--a .carta__renglones { margin-top: auto; }
+.carta__renglon {
+  display: flex;
+  align-items: flex-end;
+  border-bottom: 0.4cqw solid color-mix(in srgb, currentColor 55%, transparent);
+}
+.carta__letra {
+  font-size: 8.4cqw;
+  line-height: 1;
+  font-weight: 900;
+  font-stretch: 112%;
+  padding-bottom: 1.1cqw;
+}
+.carta__pie--regla {
+  font-family: var(--voz);
+  font-size: 4.3cqw;
+  font-weight: 800;
+  letter-spacing: 0;
+}
+
+/* Reverso: igual para todas, no dice la categoría.
+   Según cómo caiga la carta, arriba queda Cilantro o queda Perejil. */
+.carta--reverso { --a: var(--cilantro); --b: var(--perejil); --o: 54cqw; }
+.carta--reverso .carta__campo { padding: calc(8cqw + var(--sangrado)); }
+.carta__marca {
+  margin: -1.5cqw 0;
+  font-size: 14.4cqw;
+  line-height: 1;
+  font-weight: 900;
+  font-stretch: 125%;
+  letter-spacing: -0.02em;
+}
+.carta--reverso .carta__campo--b .carta__marca {
+  margin-top: auto;
+  align-self: flex-end;
+  transform: rotate(180deg);
+}
+.carta--reverso .carta__o { right: auto; left: 50%; transform: translate(-50%, -50%); }
+
+/* Imprenta: el fondo crece 3 mm por lado y las esquinas quedan rectas para el corte */
+.carta--sangrado { --sangrado: 4.762cqw; }
+.carta--sangrado .carta__cara { border-radius: 0; }
+
+/* ==========================================================================
+   3. Lámina (solo esta página)
+   ========================================================================== */
+*, *::before, *::after { box-sizing: border-box; }
+html { background: var(--mesa); }
+body {
+  margin: 0;
+  color: var(--tinta);
+  font-family: var(--voz);
+  font-size: 16px;
+  line-height: 1.45;
+  font-synthesis: none;
+  -webkit-font-smoothing: antialiased;
+}
+.lamina { width: min(1280px, 100% - 64px); margin: 0 auto; padding: 36px 0 110px; }
+.oculto {
+  position: absolute; width: 1px; height: 1px; overflow: hidden;
+  clip-path: inset(50%); white-space: nowrap;
+}
+.o-arriba { fill: var(--b); }
+.o-abajo { fill: var(--a); }
+.marca { --a: var(--cilantro); --b: var(--perejil); }
+
+.cabecera {
+  display: flex; justify-content: space-between; gap: 24px; flex-wrap: wrap;
+  font: 500 12px/1.3 var(--dato); letter-spacing: 0.06em; text-transform: uppercase;
+}
+.seccion { margin-top: 96px; padding-top: 20px; border-top: 3px solid var(--tinta); }
+.seccion--primera { margin-top: 18px; }
+.seccion__cab {
+  display: grid; grid-template-columns: 56px minmax(0, 1fr) minmax(0, 470px);
+  gap: 0 24px; align-items: baseline; margin-bottom: 48px;
+}
+.seccion__cab--corta { grid-template-columns: 56px minmax(0, 1fr); }
+.seccion__num { font: 500 13px/1 var(--dato); letter-spacing: 0.06em; }
+.seccion__titulo {
+  margin: 0; font-size: 32px; line-height: 1.05; font-weight: 900;
+  font-stretch: 112%; letter-spacing: -0.02em;
+}
+.seccion__nota { margin: 0; font-size: 15px; line-height: 1.45; font-weight: 500; color: var(--gris); }
+.etiqueta {
+  margin: 14px 0 0; font: 500 12px/1.45 var(--dato); letter-spacing: 0.02em; color: var(--gris);
+}
+.etiqueta b { font-weight: 700; color: var(--tinta); }
+
+/* 01 Logotipo */
+.logos { display: flex; gap: 72px; align-items: flex-start; flex-wrap: wrap; }
+.logo {
+  --f: 104px;
+  display: inline-block; position: relative; margin: 0;
+  padding: 0 2.24em 0 0.36em;
+  border-radius: 0.11em;
+  background: linear-gradient(to bottom, var(--a) 50%, var(--b) 50%);
+  font: 900 var(--f) / 1 var(--voz); font-stretch: 125%; letter-spacing: -0.02em;
+}
+.logo__palabra { display: block; height: 1.18em; white-space: nowrap; }
+.logo__palabra--a { padding-top: 0.195em; color: var(--b); }
+.logo__palabra--b { padding-top: 0.005em; color: var(--a); }
+.logo__o { position: absolute; right: 0.36em; top: 50%; width: 1.58em; height: 1.58em; transform: translateY(-50%); }
+.logo__o svg { display: block; width: 100%; height: 100%; }
+.logo-pie {
+  display: flex; justify-content: space-between; align-items: baseline; gap: 24px;
+  margin: 18px 0 0; font-size: 29px; line-height: 1; font-weight: 900; font-stretch: 112%;
+  letter-spacing: -0.015em;
+}
+.logo-pie__lema { color: var(--perejil); }
+
+.logos__lado { display: grid; gap: 44px; }
+.logo-c {
+  --f: 36px;
+  display: inline-flex; position: relative; margin: 0; height: 1.72em;
+  border-radius: 0.14em; overflow: hidden;
+  font: 900 var(--f) / 1 var(--voz); font-stretch: 112%; letter-spacing: -0.02em;
+}
+.logo-c__a, .logo-c__b { display: block; padding-top: 0.37em; white-space: nowrap; }
+.logo-c__a { background: var(--a); color: var(--b); padding-left: 0.46em; padding-right: 0.7em; }
+.logo-c__b { background: var(--b); color: var(--a); padding-left: 0.72em; padding-right: 0.46em; }
+.logo-c__o { position: relative; width: 0; z-index: 1; }
+.logo-c__o svg { position: absolute; left: -0.54em; top: 50%; width: 1.08em; height: 1.08em; margin-top: -0.54em; }
+.logo-c + .logo-c { margin-top: 16px; }
+.compactas { display: grid; justify-items: start; }
+.iconos { display: flex; align-items: flex-end; gap: 22px; }
+.icono {
+  --l: 160px;
+  display: block; position: relative; width: var(--l); height: var(--l);
+  border-radius: calc(var(--l) * 0.225);
+  background: linear-gradient(to bottom, var(--a) 50%, var(--b) 50%);
+}
+.icono svg { position: absolute; left: 21%; top: 21%; width: 58%; height: 58%; }
+
+/* 02 Frentes */
+.frentes { display: grid; grid-template-columns: repeat(3, 384px); justify-content: space-between; gap: 52px 0; }
+.frentes figure, .escala figure, .pares figure { margin: 0; }
+.niveles { margin: 64px 0 0; display: grid; grid-template-columns: repeat(3, 384px); justify-content: space-between; gap: 28px 0; }
+.niveles div { padding-top: 14px; border-top: 1px solid color-mix(in srgb, var(--tinta) 22%, transparent); }
+.niveles dt { font-size: 22px; line-height: 1; font-weight: 900; font-stretch: 80%; letter-spacing: -0.01em; }
+.niveles dd { margin: 8px 0 0; font: 500 12px/1.6 var(--dato); letter-spacing: 0.02em; color: var(--gris); }
+.niveles dd b { font-weight: 700; color: var(--tinta); }
+.niveles__nota { grid-column: 1 / -1; margin: 0; font-size: 15px; line-height: 1.45; font-weight: 500; color: var(--gris); max-width: 78ch; }
+
+/* 03 y 04 */
+.dupla { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0 64px; }
+.pieza { display: grid; grid-template-columns: 320px minmax(0, 1fr); gap: 36px; align-items: start; }
+.apuntes { margin: 0; padding: 0; list-style: none; display: grid; gap: 22px; }
+.apuntes b {
+  display: block; margin-bottom: 4px;
+  font: 700 12px/1.3 var(--dato); letter-spacing: 0.06em; text-transform: uppercase;
+}
+.apuntes li { font-size: 15px; line-height: 1.45; font-weight: 500; color: var(--gris); }
+.apuntes li b { color: var(--tinta); }
+
+/* 05 Escala */
+.escala { display: flex; align-items: stretch; gap: 64px; flex-wrap: wrap; }
+.w-320 { width: 320px; }
+.w-63mm { width: 63mm; }
+.w-120 { width: 120px; }
+.escala figure { display: flex; flex-direction: column; justify-content: flex-end; }
+.escala figcaption { max-width: 300px; min-height: 58px; }
+.pliego { position: relative; width: 63mm; margin: 3mm; }
+.pliego__guia { position: absolute; pointer-events: none; mix-blend-mode: difference; }
+.pliego__guia--corte { inset: 0; border: 1px solid #fff; border-radius: 3mm; }
+.pliego__guia--segura { inset: 5mm; border: 1px dashed #fff; }
+
+/* 06 Color */
+.pares { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 20px; }
+.par__muestra {
+  position: relative; aspect-ratio: 63 / 88; border-radius: 9px; overflow: hidden;
+  display: grid; grid-template-rows: 1fr 1fr;
+  background: linear-gradient(to bottom, var(--a) 50%, var(--b) 50%);
+}
+.par__color { margin: 0; padding: 14px; display: flex; flex-direction: column; gap: 5px; }
+.par__color--a { color: var(--b); }
+.par__color--b { color: var(--a); justify-content: flex-end; }
+.par__color b { font-size: 19px; line-height: 1; font-weight: 900; letter-spacing: -0.01em; }
+.par__color span { font: 500 12px/1 var(--dato); letter-spacing: 0.04em; }
+.par__o { position: absolute; right: 14px; top: 50%; width: 38px; height: 38px; transform: translateY(-50%); }
+.par figcaption b { display: block; font: 800 15px/1.2 var(--voz); letter-spacing: 0; color: var(--tinta); margin-bottom: 3px; }
+.neutros { margin: 44px 0 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px 40px; }
+.neutros li { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 4px 16px; align-items: start; }
+.neutros__muestra { grid-row: span 2; width: 64px; height: 64px; border-radius: 9px; }
+.neutros b { font-size: 19px; line-height: 1.1; font-weight: 900; }
+.neutros code { font: 500 12px/1 var(--dato); letter-spacing: 0.04em; margin-left: 8px; }
+.neutros span { font-size: 14px; line-height: 1.4; font-weight: 500; color: var(--gris); }
+
+/* 07 Tipografías */
+.tipos { display: grid; grid-template-columns: minmax(0, 1.75fr) minmax(0, 1fr); gap: 0 72px; }
+.tipo__nombre { margin: 0 0 6px; font-size: 13px; }
+.tipo__familia { margin: 0 0 30px; font-size: 54px; line-height: 1; font-weight: 900; letter-spacing: -0.02em; }
+.muestra { margin: 0 0 26px; }
+.muestra p { margin: 0; line-height: 1.02; white-space: nowrap; }
+.muestra .etiqueta { margin: 0 0 8px; white-space: normal; }
+.m-125 { font-size: 66px; font-weight: 900; font-stretch: 125%; letter-spacing: -0.02em; }
+.m-c100 { font-size: 62px; font-weight: 900; font-stretch: 80%; letter-spacing: -0.025em; }
+.m-92 { font-size: 42px; font-weight: 850; font-stretch: 80%; letter-spacing: -0.012em; }
+.m-78 { font-size: 34px; font-weight: 800; font-stretch: 78%; }
+.m-100 { font-size: 26px; font-weight: 800; }
+.m-texto { font-size: 17px; font-weight: 500; line-height: 1.45 !important; white-space: normal !important; max-width: 60ch; }
+.m-signos { font-size: 40px; font-weight: 900; letter-spacing: 0.06em; }
+.tipo--dato .tipo__familia { font-family: var(--dato); font-weight: 700; font-size: 44px; letter-spacing: -0.03em; }
+.tipo--dato .muestra p { font-family: var(--dato); }
+.d-codigo { font-size: 52px; font-weight: 700; letter-spacing: 0.04em; }
+.d-pie { font-size: 19px; font-weight: 500; }
+.d-dato { font-size: 15px; font-weight: 400; line-height: 1.5 !important; white-space: normal !important; }
+.d-signos { font-size: 27px; font-weight: 500; letter-spacing: 0.04em; }
+
+/* 08 Teléfono */
+.movil { display: grid; grid-template-columns: 412px minmax(0, 1fr); gap: 0 88px; align-items: start; }
+.telefono {
+  position: relative; width: 412px; height: 866px; border-radius: 62px;
+  background: #0D0E11; padding: 11px;
+}
+.pantalla {
+  --carta-x: 36px; --carta-y: 150px; --carta-w: 318px;
+  --costura: calc(var(--carta-y) + var(--carta-w) * 88 / 126);
+  position: relative; width: 390px; height: 844px; border-radius: 51px; overflow: hidden;
+  /* El fondo toma los dos colores de la carta, invertidos, y sigue su costura */
+  background: linear-gradient(to bottom, var(--b) var(--costura), var(--a) var(--costura));
+  color: var(--a);
+}
+.pantalla__isla { position: absolute; top: 12px; left: 50%; width: 122px; height: 35px; margin-left: -61px; border-radius: 18px; background: #0D0E11; }
+.pantalla__estado {
+  position: absolute; top: 20px; left: 40px; right: 34px; display: flex; justify-content: space-between; align-items: center;
+  font: 800 16px/1 var(--voz);
+}
+.pantalla__estado svg { display: block; height: 12px; width: auto; fill: currentColor; }
+.pantalla__barra {
+  position: absolute; top: 76px; left: var(--carta-x); right: var(--carta-x); height: 40px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.marca-linea { font: 900 17px/1 var(--voz); font-stretch: 112%; letter-spacing: -0.02em; white-space: nowrap; }
+.marca-linea .aro { display: inline-block; width: 1.12em; height: 1.12em; margin: 0 0.2em; vertical-align: -0.24em; fill: currentColor; }
+.boton-mazo {
+  display: inline-flex; align-items: center; gap: 7px; height: 34px; padding: 0 13px 0 11px;
+  border: 1.5px solid currentColor; border-radius: 17px; background: none; color: inherit;
+  font: 500 12px/1 var(--dato); letter-spacing: 0.06em; text-transform: uppercase;
+}
+.boton-mazo svg { width: 15px; height: 15px; }
+.pantalla .carta { position: absolute; left: var(--carta-x); top: var(--carta-y); width: var(--carta-w); }
+.boton-siguiente {
+  position: absolute; left: var(--carta-x); right: var(--carta-x); top: 636px; height: 72px;
+  display: flex; align-items: center; justify-content: space-between; padding: 0 30px 0 34px;
+  border: 0; border-radius: 36px; background: var(--b); color: var(--a);
+  font: 900 25px/1 var(--voz); font-stretch: 112%; letter-spacing: -0.02em;
+}
+.boton-siguiente svg { width: 34px; height: 24px; fill: currentColor; }
+.pantalla__pista {
+  position: absolute; left: calc(var(--carta-x) + 34px); right: var(--carta-x); top: 724px; margin: 0;
+  font: 500 12px/1.4 var(--dato); letter-spacing: 0.02em; color: var(--b);
+}
+.pantalla__inicio { position: absolute; bottom: 9px; left: 50%; width: 136px; height: 5px; margin-left: -68px; border-radius: 3px; background: var(--b); }
+
+.movil__lado { display: grid; gap: 56px; padding-top: 6px; }
+.apuntes--dos { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 30px 48px; }
+.minis { display: flex; gap: 36px; align-items: flex-start; }
+.minis figure { margin: 0; width: 162px; }
+.mini {
+  position: relative; width: 162px; aspect-ratio: 390 / 844; border: 5px solid #0D0E11; border-radius: 26px; overflow: hidden;
+  background: linear-gradient(to bottom, var(--b) 43.85%, var(--a) 43.85%);
+}
+.mini .carta { position: absolute; left: 9.23%; top: 17.77%; width: 81.54%; }
+.mini__boton { position: absolute; left: 9.23%; right: 9.23%; top: 75.36%; height: 8.53%; border-radius: 99px; background: var(--b); }
+
+/* 09 Tres líneas */
+.lineas { margin: 0; display: grid; gap: 0; }
+.lineas div { display: grid; grid-template-columns: 216px minmax(0, 1fr); gap: 0 24px; align-items: baseline; padding: 17px 0; border-bottom: 1px solid color-mix(in srgb, var(--tinta) 22%, transparent); }
+.lineas div:first-child { padding-top: 0; }
+.lineas dt { font: 700 12px/1.3 var(--dato); letter-spacing: 0.06em; text-transform: uppercase; }
+.lineas dd { margin: 0; font-size: 21px; line-height: 1.25; font-weight: 700; letter-spacing: -0.005em; }
+
+@media (max-width: 1340px) {
+  .frentes, .niveles { grid-template-columns: repeat(auto-fill, minmax(280px, 384px)); justify-content: start; gap: 40px; }
+  .dupla, .tipos, .movil { grid-template-columns: minmax(0, 1fr); gap: 64px 0; }
+  .pares { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+  .seccion__cab { grid-template-columns: 56px minmax(0, 1fr); }
+  .seccion__nota { grid-column: 2; margin-top: 10px; }
+  .logo { --f: clamp(48px, 7.4vw, 104px); }
+}
+</style>
+</head>
+<body>
+<main class="lamina">
+
+  <header class="cabecera">
+    <span>Cilantro o Perejil · Lámina de identidad</span>
+    <span>Dirección: «La carta partida en dos»</span>
+    <span>Edición 01 · 120 cartas · 63 × 88 mm</span>
+  </header>
+
+  <section class="seccion seccion--primera" id="logotipo">
+    <header class="seccion__cab">
+      <span class="seccion__num">01</span>
+      <h2 class="seccion__titulo">Logotipo</h2>
+      <p class="seccion__nota">La marca ya es una carta partida: Cilantro arriba, Perejil abajo y la «o» de bisagra, mitad de cada color. Dos verdes casi iguales que, juntos, obligan a elegir.</p>
+    </header>
+    <div class="logos">
+      <div class="logos__principal">
+        <h1 class="logo marca">
+          <span class="logo__palabra logo__palabra--a">Cilantro</span>
+          <span class="logo__o"><span class="oculto">o</span><svg viewBox="0 0 100 100" aria-hidden="true" focusable="false"><path class="o-arriba" d="M0 50a50 50 0 0 1 100 0H70a20 27 0 0 0-40 0z"/><path class="o-abajo" d="M0 50a50 50 0 0 0 100 0H70a20 27 0 0 1-40 0z"/></svg></span>
+          <span class="logo__palabra logo__palabra--b">Perejil</span>
+        </h1>
+        <p class="logo-pie"><span class="logo-pie__descriptor">El juego de ¿Qué prefieres?</span><span class="logo-pie__lema">Hay que elegir.</span></p>
+        <p class="etiqueta"><b>Principal</b> · con descriptor y lema</p>
+      </div>
+      <div class="logos__lado">
+        <div class="compactas">
+          <p class="logo-c marca"><span class="logo-c__a">Cilantro</span><span class="logo-c__o"><span class="oculto">o</span><svg viewBox="0 0 100 100" aria-hidden="true" focusable="false"><path class="o-arriba" d="M50 0a50 50 0 0 0 0 100V77a20 27 0 0 1 0-54z"/><path class="o-abajo" d="M50 0a50 50 0 0 1 0 100V77a20 27 0 0 0 0-54z"/></svg></span><span class="logo-c__b">Perejil</span></p>
+          <p class="logo-c marca" style="--f:19px"><span class="logo-c__a">Cilantro</span><span class="logo-c__o"><span class="oculto">o</span><svg viewBox="0 0 100 100" aria-hidden="true" focusable="false"><path class="o-arriba" d="M50 0a50 50 0 0 0 0 100V77a20 27 0 0 1 0-54z"/><path class="o-abajo" d="M50 0a50 50 0 0 1 0 100V77a20 27 0 0 0 0-54z"/></svg></span><span class="logo-c__b">Perejil</span></p>
+          <p class="etiqueta"><b>Compacta</b> · una línea, costura vertical</p>
+        </div>
+        <div>
+          <div class="iconos">
+            <span class="icono marca" role="img" aria-label="Ícono de app"><svg viewBox="0 0 100 100" aria-hidden="true" focusable="false"><path class="o-arriba" d="M0 50a50 50 0 0 1 100 0H70a20 27 0 0 0-40 0z"/><path class="o-abajo" d="M0 50a50 50 0 0 0 100 0H70a20 27 0 0 1-40 0z"/></svg></span>
+            <span class="icono marca" style="--l:76px" aria-hidden="true"><svg viewBox="0 0 100 100" aria-hidden="true" focusable="false"><path class="o-arriba" d="M0 50a50 50 0 0 1 100 0H70a20 27 0 0 0-40 0z"/><path class="o-abajo" d="M0 50a50 50 0 0 0 100 0H70a20 27 0 0 1-40 0z"/></svg></span>
+            <span class="icono marca" style="--l:40px" aria-hidden="true"><svg viewBox="0 0 100 100" aria-hidden="true" focusable="false"><path class="o-arriba" d="M0 50a50 50 0 0 1 100 0H70a20 27 0 0 0-40 0z"/><path class="o-abajo" d="M0 50a50 50 0 0 0 100 0H70a20 27 0 0 1-40 0z"/></svg></span>
+          </div>
+          <p class="etiqueta"><b>Ícono de app</b> · la «o» entre dos verdes</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="seccion" id="frentes">
+    <header class="seccion__cab">
+      <span class="seccion__num">02</span>
+      <h2 class="seccion__titulo">Seis frentes, uno por categoría</h2>
+      <p class="seccion__nota">Opción A arriba, opción B abajo, cada una escrita con el color de la otra. Tres niveles según la opción más larga: cuanto más hay que decir, más se aprieta la letra y más se encoge la «o».</p>
+    </header>
+    <div class="frentes">
+      <figure>
+        <article class="carta carta--comida t-corta">
+          <div class="carta__cara">
+            <div class="carta__campo carta__campo--a">
+              <p class="carta__arranque">¿Qué prefieres…</p>
+              <p class="carta__opcion carta__opcion--a">cilantro</p>
+            </div>
+            <p class="carta__o"><span class="carta__o-texto">o</span><svg viewBox="0 0 100 100" aria-hidden="true" focusable="false"><path class="carta__o-arriba" d="M0 50a50 50 0 0 1 100 0H70a20 27 0 0 0-40 0z"/><path class="carta__o-abajo" d="M0 50a50 50 0 0 0 100 0H70a20 27 0 0 1-40 0z"/></svg></p>
+            <div class="carta__campo carta__campo--b">
+              <p class="carta__opcion carta__opcion--b">perejil</p>
+              <p class="carta__pie"><span class="carta__codigo">COM·01</span><span class="carta__categoria">Comida</span></p>
+            </div>
+          </div>
+        </article>
+        <figcaption class="etiqueta"><b>COM·01</b> · carta--comida t-corta · A 8 · B 7</figcaption>
+      </figure>
+      <figure>
+        <article class="carta carta--destinos t-media">
+          <div class="carta__cara">
+            <div class="carta__campo carta__campo--a">
+              <p class="carta__arranque">¿Qué prefieres…</p>
+              <p class="carta__opcion carta__opcion--a">un safari en África</p>
+            </div>
+            <p class="carta__o"><span class="carta__o-texto">o</span><svg viewBox="0 0 100 100" aria-hidden="true" focusable="false"><path class="carta__o-arriba" d="M0 50a50 50 0 0 1 100 0H70a20 27 0 0 0-40 0z"/><path class="carta__o-abajo" d="M0 50a50 50 0 0 0 100 0H70a20 27 0 0 1-40 0z"/></svg></p>
+            <div class="carta__campo carta__campo--b">
+              <p class="carta__opcion carta__opcion--b">ver auroras boreales en Islandia</p>
+              <p class="carta__pie"><span class="carta__codigo">DES·02</span><span class="carta__categoria">Destinos y aventuras</span></p>
+            </div>
+          </div>
+        </article>
+        <figcaption class="etiqueta"><b>DES·02</b> · carta--destinos t-media · A 19 · B 32</figcaption>
+      </figure>
+      <figure>
+        <article class="carta carta--familia t-larga">
+          <div class="carta__cara">
+            <div class="carta__campo carta__campo--a">
+              <p class="carta__arranque">¿Qué prefieres…</p>
+              <p class="carta__opcion carta__opcion--a">que tu mamá lea tus WhatsApps</p>
+            </div>
+            <p class="carta__o"><span class="carta__o-texto">o</span><svg viewBox="0 0 100 100" aria-hidden="true" focusable="false"><path class="carta__o-arriba" d="M0 50a50 50 0 0 1 100 0H70a20 27 0 0 0-40 0z"/><path class="carta__o-abajo" d="M0 50a50 50 0 0 0 100 0H70a20 27 0 0 1-40 0z"/></svg></p>
+            <div class="carta__campo carta__campo--b">
+              <p class="carta__opcion carta__opcion--b">que tu jefe vea tu historial de búsqueda</p>
+              <p class="carta__pie"><span class="carta__codigo">FAM·02</span><span class="carta__categoria">Familia y vínculos</span></p>
+            </div>
+          </div>
+        </article>
+        <figcaption class="etiqueta"><b>FAM·02</b> · carta--familia t-larga · A 29 · B 40</figcaption>
+      </figure>
+      <figure>
+        <article class="carta carta--celebrities t-larga">
+          <div class="carta__cara">
+            <div class="carta__campo carta__campo--a">
+              <p class="carta__arranque">¿Qué prefieres…</p>
+              <p class="carta__opcion carta__opcion--a">que Pedro Pascal sea tu vecino</p>
+            </div>
+            <p class="carta__o"><span class="carta__o-texto">o</span><svg viewBox="0 0 100 100" aria-hidden="true" focusable="false"><path class="carta__o-arriba" d="M0 50a50 50 0 0 1 100 0H70a20 27 0 0 0-40 0z"/><path class="carta__o-abajo" d="M0 50a50 50 0 0 0 100 0H70a20 27 0 0 1-40 0z"/></svg></p>
+            <div class="carta__campo carta__campo--b">
+              <p class="carta__opcion carta__opcion--b">que Keanu Reeves sea tu compañero de trabajo</p>
+              <p class="carta__pie"><span class="carta__codigo">CEL·02</span><span class="carta__categoria">Celebrities y cultura pop</span></p>
+            </div>
+          </div>
+        </article>
+        <figcaption class="etiqueta"><b>CEL·02</b> · carta--celebrities t-larga · A 30 · B 44</figcaption>
+      </figure>
+      <figure>
+        <article class="carta carta--dilemas t-larga">
+          <div class="carta__cara">
+            <div class="carta__campo carta__campo--a">
+              <p class="carta__arranque">¿Qué prefieres…</p>
+              <p class="carta__opcion carta__opcion--a">tener hipo cada vez que te ríes</p>
+            </div>
+            <p class="carta__o"><span class="carta__o-texto">o</span><svg viewBox="0 0 100 100" aria-hidden="true" focusable="false"><path class="carta__o-arriba" d="M0 50a50 50 0 0 1 100 0H70a20 27 0 0 0-40 0z"/><path class="carta__o-abajo" d="M0 50a50 50 0 0 0 100 0H70a20 27 0 0 1-40 0z"/></svg></p>
+            <div class="carta__campo carta__campo--b">
+              <p class="carta__opcion carta__opcion--b">estornudar cada vez que alguien dice tu nombre</p>
+              <p class="carta__pie"><span class="carta__codigo">DIL·02</span><span class="carta__categoria">Dilemas imposibles</span></p>
+            </div>
+          </div>
+        </article>
+        <figcaption class="etiqueta"><b>DIL·02</b> · carta--dilemas t-larga · A 31 · B 46</figcaption>
+      </figure>
+      <figure>
+        <article class="carta carta--asco t-larga">
+          <div class="carta__cara">
+            <div class="carta__campo carta__campo--a">
+              <p class="carta__arranque">¿Qué prefieres…</p>
+              <p class="carta__opcion carta__opcion--a">oler los pies sudados de tu mejor amigx</p>
+            </div>
+            <p class="carta__o"><span class="carta__o-texto">o</span><svg viewBox="0 0 100 100" aria-hidden="true" focusable="false"><path class="carta__o-arriba" d="M0 50a50 50 0 0 1 100 0H70a20 27 0 0 0-40 0z"/><path class="carta__o-abajo" d="M0 50a50 50 0 0 0 100 0H70a20 27 0 0 1-40 0z"/></svg></p>
+            <div class="carta__campo carta__campo--b">
+              <p class="carta__opcion carta__opcion--b">sacarle la cerilla de los oídos</p>
+              <p class="carta__pie"><span class="carta__codigo">ASC·01</span><span class="carta__categoria">Qué asco</span></p>
+            </div>
+          </div>
+        </article>
+        <figcaption class="etiqueta"><b>ASC·01</b> · carta--asco t-larga · A 39 · B 31</figcaption>
+      </figure>
+    </div>
+    <dl class="niveles">
+      <div><dt>t-corta</dt><dd><b>Hasta 14 caracteres</b><br>Letra de 14.8cqw, ancho 80 · «o» de 34cqw<br>Dos renglones como máximo</dd></div>
+      <div><dt>t-media</dt><dd><b>De 15 a 34 caracteres</b><br>Letra de 10cqw, ancho 80 · «o» de 26cqw<br>Hasta cuatro renglones</dd></div>
+      <div><dt>t-larga</dt><dd><b>De 35 a 60 caracteres</b><br>Letra de 9cqw, ancho 78 · «o» de 22cqw<br>Hasta cuatro renglones</dd></div>
+      <p class="niveles__nota">Los tres niveles se probaron con opciones de 3 a 60 caracteres sin que nada se saliera de la zona segura ni tocara la «o». En t-corta caben enteras palabras como «mantequilla» o «cumpleaños»; solo las de doce letras o más se parten con guion. El signo de cierre lo pone la carta, no el texto.</p>
+    </dl>
+  </section>
+
+  <div class="dupla">
+    <section class="seccion" id="blanca">
+      <header class="seccion__cab seccion__cab--corta">
+        <span class="seccion__num">03</span>
+        <h2 class="seccion__titulo">Carta en blanco</h2>
+      </header>
+      <div class="pieza">
+        <article class="carta carta--blanca">
+          <div class="carta__cara">
+            <div class="carta__campo carta__campo--a">
+              <p class="carta__arranque">¿Qué prefieres…</p>
+              <div class="carta__renglones">
+                <span class="carta__renglon"><b class="carta__letra">A:</b></span>
+                <span class="carta__renglon"></span>
+                <span class="carta__renglon"></span>
+              </div>
+            </div>
+            <p class="carta__o"><span class="carta__o-texto">o</span><svg viewBox="0 0 100 100" aria-hidden="true" focusable="false"><path class="carta__o-arriba" d="M0 50a50 50 0 0 1 100 0H70a20 27 0 0 0-40 0z"/><path class="carta__o-abajo" d="M0 50a50 50 0 0 0 100 0H70a20 27 0 0 1-40 0z"/></svg></p>
+            <div class="carta__campo carta__campo--b">
+              <div class="carta__renglones">
+                <span class="carta__renglon"><b class="carta__letra">B:</b></span>
+                <span class="carta__renglon"></span>
+                <span class="carta__renglon"></span>
+              </div>
+              <p class="carta__pie carta__pie--regla">No se vale ponerlo fácil.</p>
+            </div>
+          </div>
+        </article>
+        <ul class="apuntes">
+          <li><b>Dos mitades claras</b>Papel arriba y Cilantro abajo: las dos aceptan pluma o plumón.</li>
+          <li><b>Renglones de verdad</b>Tres por opción, uno cada 7,5 mm. Caben 60 caracteres escritos a mano.</li>
+          <li><b>La regla al pie</b>«No se vale ponerlo fácil.» ocupa el lugar donde las demás llevan código y categoría.</li>
+        </ul>
+      </div>
+    </section>
+    <section class="seccion" id="reverso">
+      <header class="seccion__cab seccion__cab--corta">
+        <span class="seccion__num">04</span>
+        <h2 class="seccion__titulo">Reverso</h2>
+      </header>
+      <div class="pieza">
+        <article class="carta carta--reverso" aria-label="Reverso: Cilantro o Perejil">
+          <div class="carta__cara">
+            <div class="carta__campo carta__campo--a"><p class="carta__marca">Cilantro</p></div>
+            <p class="carta__o"><span class="carta__o-texto">o</span><svg viewBox="0 0 100 100" aria-hidden="true" focusable="false"><path class="carta__o-arriba" d="M0 50a50 50 0 0 1 100 0H70a20 27 0 0 0-40 0z"/><path class="carta__o-abajo" d="M0 50a50 50 0 0 0 100 0H70a20 27 0 0 1-40 0z"/></svg></p>
+            <div class="carta__campo carta__campo--b"><p class="carta__marca">Perejil</p></div>
+          </div>
+        </article>
+        <ul class="apuntes">
+          <li><b>Uno para todas</b>Las 120 cartas comparten reverso. La categoría no se asoma: la sorpresa sigue intacta.</li>
+          <li><b>El reverso también elige</b>Según caiga la carta, arriba queda Cilantro o queda Perejil.</li>
+          <li><b>La «o» sola</b>Al centro y a más de la mitad del ancho: es el ícono, a tamaño carta.</li>
+        </ul>
+      </div>
+    </section>
+  </div>
+
+  <section class="seccion" id="escala">
+    <header class="seccion__cab">
+      <span class="seccion__num">05</span>
+      <h2 class="seccion__titulo">La misma carta, dos tamaños</h2>
+      <p class="seccion__nota">Un solo componente. Todo lo de adentro se mide en cqw (1cqw = 1 % del ancho de la carta), así que la carta es idéntica a 320 px en el teléfono, a 63 mm en imprenta o en miniatura.</p>
+    </header>
+    <div class="escala">
+      <figure>
+        <div class="w-320">
+          <article class="carta carta--celebrities t-larga">
+            <div class="carta__cara">
+              <div class="carta__campo carta__campo--a">
+                <p class="carta__arranque">¿Qué prefieres…</p>
+                <p class="carta__opcion carta__opcion--a">que Pedro Pascal sea tu vecino</p>
+              </div>
+              <p class="carta__o"><span class="carta__o-texto">o</span><svg viewBox="0 0 100 100" aria-hidden="true" focusable="false"><path class="carta__o-arriba" d="M0 50a50 50 0 0 1 100 0H70a20 27 0 0 0-40 0z"/><path class="carta__o-abajo" d="M0 50a50 50 0 0 0 100 0H70a20 27 0 0 1-40 0z"/></svg></p>
+              <div class="carta__campo carta__campo--b">
+                <p class="carta__opcion carta__opcion--b">que Keanu Reeves sea tu compañero de trabajo</p>
+                <p class="carta__pie"><span class="carta__codigo">CEL·02</span><span class="carta__categoria">Celebrities y cultura pop</span></p>
+              </div>
+            </div>
+          </article>
+        </div>
+        <figcaption class="etiqueta"><b>Teléfono</b> · 320 px de ancho</figcaption>
+      </figure>
+      <figure>
+        <div class="w-63mm">
+          <article class="carta carta--celebrities t-larga">
+            <div class="carta__cara">
+              <div class="carta__campo carta__campo--a">
+                <p class="carta__arranque">¿Qué prefieres…</p>
+                <p class="carta__opcion carta__opcion--a">que Pedro Pascal sea tu vecino</p>
+              </div>
+              <p class="carta__o"><span class="carta__o-texto">o</span><svg viewBox="0 0 100 100" aria-hidden="true" focusable="false"><path class="carta__o-arriba" d="M0 50a50 50 0 0 1 100 0H70a20 27 0 0 0-40 0z"/><path class="carta__o-abajo" d="M0 50a50 50 0 0 0 100 0H70a20 27 0 0 1-40 0z"/></svg></p>
+              <div class="carta__campo carta__campo--b">
+                <p class="carta__opcion carta__opcion--b">que Keanu Reeves sea tu compañero de trabajo</p>
+                <p class="carta__pie"><span class="carta__codigo">CEL·02</span><span class="carta__categoria">Celebrities y cultura pop</span></p>
+              </div>
+            </div>
+          </article>
+        </div>
+        <figcaption class="etiqueta"><b>Imprenta</b> · 63 × 88 mm al 100 %</figcaption>
+      </figure>
+      <figure>
+        <div class="w-120">
+          <article class="carta carta--celebrities t-larga">
+            <div class="carta__cara">
+              <div class="carta__campo carta__campo--a">
+                <p class="carta__arranque">¿Qué prefieres…</p>
+                <p class="carta__opcion carta__opcion--a">que Pedro Pascal sea tu vecino</p>
+              </div>
+              <p class="carta__o"><span class="carta__o-texto">o</span><svg viewBox="0 0 100 100" aria-hidden="true" focusable="false"><path class="carta__o-arriba" d="M0 50a50 50 0 0 1 100 0H70a20 27 0 0 0-40 0z"/><path class="carta__o-abajo" d="M0 50a50 50 0 0 0 100 0H70a20 27 0 0 1-40 0z"/></svg></p>
+              <div class="carta__campo carta__campo--b">
+                <p class="carta__opcion carta__opcion--b">que Keanu Reeves sea tu compañero de trabajo</p>
+                <p class="carta__pie"><span class="carta__codigo">CEL·02</span><span class="carta__categoria">Celebrities y cultura pop</span></p>
+              </div>
+            </div>
+          </article>
+        </div>
+        <figcaption class="etiqueta"><b>Miniatura</b> · 120 px</figcaption>
+      </figure>
+      <figure>
+        <div class="pliego">
+          <article class="carta carta--celebrities t-larga carta--sangrado">
+            <div class="carta__cara">
+              <div class="carta__campo carta__campo--a">
+                <p class="carta__arranque">¿Qué prefieres…</p>
+                <p class="carta__opcion carta__opcion--a">que Pedro Pascal sea tu vecino</p>
+              </div>
+              <p class="carta__o"><span class="carta__o-texto">o</span><svg viewBox="0 0 100 100" aria-hidden="true" focusable="false"><path class="carta__o-arriba" d="M0 50a50 50 0 0 1 100 0H70a20 27 0 0 0-40 0z"/><path class="carta__o-abajo" d="M0 50a50 50 0 0 0 100 0H70a20 27 0 0 1-40 0z"/></svg></p>
+              <div class="carta__campo carta__campo--b">
+                <p class="carta__opcion carta__opcion--b">que Keanu Reeves sea tu compañero de trabajo</p>
+                <p class="carta__pie"><span class="carta__codigo">CEL·02</span><span class="carta__categoria">Celebrities y cultura pop</span></p>
+              </div>
+            </div>
+          </article>
+          <span class="pliego__guia pliego__guia--corte"></span>
+          <span class="pliego__guia pliego__guia--segura"></span>
+        </div>
+        <figcaption class="etiqueta"><b>Pliego</b> · el color crece 3 mm por lado. Línea continua: corte. Punteada: zona segura de 5 mm.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section class="seccion" id="color">
+    <header class="seccion__cab">
+      <span class="seccion__num">06</span>
+      <h2 class="seccion__titulo">Sistema de color</h2>
+      <p class="seccion__nota">Cada categoría es un par: un claro y un oscuro de familias que no deberían llevarse. El texto de una mitad usa el color de la otra, así que el par nunca se separa y siempre pasa de 4,5:1.</p>
+    </header>
+    <div class="pares">
+      <figure class="par" style="--a:var(--cilantro);--b:var(--perejil)">
+        <div class="par__muestra">
+          <p class="par__color par__color--a"><b>Cilantro</b><span>#98DE4E</span></p>
+          <p class="par__color par__color--b"><b>Perejil</b><span>#0B5239</span></p>
+          <span class="par__o"><svg viewBox="0 0 100 100" aria-hidden="true" focusable="false"><path class="o-arriba" d="M0 50a50 50 0 0 1 100 0H70a20 27 0 0 0-40 0z"/><path class="o-abajo" d="M0 50a50 50 0 0 0 100 0H70a20 27 0 0 1-40 0z"/></svg></span>
+        </div>
+        <figcaption class="etiqueta"><b>Marca</b>Logotipo, ícono, reverso y carta en blanco · 5,6:1 AA</figcaption>
+      </figure>
+      <figure class="par" style="--a:var(--mango);--b:var(--betabel)">
+        <div class="par__muestra">
+          <p class="par__color par__color--a"><b>Mango</b><span>#FFB62E</span></p>
+          <p class="par__color par__color--b"><b>Betabel</b><span>#7B0F4E</span></p>
+          <span class="par__o"><svg viewBox="0 0 100 100" aria-hidden="true" focusable="false"><path class="o-arriba" d="M0 50a50 50 0 0 1 100 0H70a20 27 0 0 0-40 0z"/><path class="o-abajo" d="M0 50a50 50 0 0 0 100 0H70a20 27 0 0 1-40 0z"/></svg></span>
+        </div>
+        <figcaption class="etiqueta"><b>Comida</b>COM · 5,9:1 AA</figcaption>
+      </figure>
+      <figure class="par" style="--a:var(--granate);--b:var(--cielo)">
+        <div class="par__muestra">
+          <p class="par__color par__color--a"><b>Granate</b><span>#8C1220</span></p>
+          <p class="par__color par__color--b"><b>Cielo</b><span>#86CDFF</span></p>
+          <span class="par__o"><svg viewBox="0 0 100 100" aria-hidden="true" focusable="false"><path class="o-arriba" d="M0 50a50 50 0 0 1 100 0H70a20 27 0 0 0-40 0z"/><path class="o-abajo" d="M0 50a50 50 0 0 0 100 0H70a20 27 0 0 1-40 0z"/></svg></span>
+        </div>
+        <figcaption class="etiqueta"><b>Destinos y aventuras</b>DES · 5,5:1 AA</figcaption>
+      </figure>
+      <figure class="par" style="--a:var(--lila);--b:var(--chocolate)">
+        <div class="par__muestra">
+          <p class="par__color par__color--a"><b>Lila</b><span>#C9AEFF</span></p>
+          <p class="par__color par__color--b"><b>Chocolate</b><span>#4A2010</span></p>
+          <span class="par__o"><svg viewBox="0 0 100 100" aria-hidden="true" focusable="false"><path class="o-arriba" d="M0 50a50 50 0 0 1 100 0H70a20 27 0 0 0-40 0z"/><path class="o-abajo" d="M0 50a50 50 0 0 0 100 0H70a20 27 0 0 1-40 0z"/></svg></span>
+        </div>
+        <figcaption class="etiqueta"><b>Familia y vínculos</b>FAM · 7,3:1 AAA</figcaption>
+      </figure>
+      <figure class="par" style="--a:var(--noche);--b:var(--chicle)">
+        <div class="par__muestra">
+          <p class="par__color par__color--a"><b>Noche</b><span>#16175A</span></p>
+          <p class="par__color par__color--b"><b>Chicle</b><span>#FF8FCF</span></p>
+          <span class="par__o"><svg viewBox="0 0 100 100" aria-hidden="true" focusable="false"><path class="o-arriba" d="M0 50a50 50 0 0 1 100 0H70a20 27 0 0 0-40 0z"/><path class="o-abajo" d="M0 50a50 50 0 0 0 100 0H70a20 27 0 0 1-40 0z"/></svg></span>
+        </div>
+        <figcaption class="etiqueta"><b>Celebrities y cultura pop</b>CEL · 7,7:1 AAA</figcaption>
+      </figure>
+      <figure class="par" style="--a:var(--coral);--b:var(--petroleo)">
+        <div class="par__muestra">
+          <p class="par__color par__color--a"><b>Coral</b><span>#FF8266</span></p>
+          <p class="par__color par__color--b"><b>Petróleo</b><span>#06384C</span></p>
+          <span class="par__o"><svg viewBox="0 0 100 100" aria-hidden="true" focusable="false"><path class="o-arriba" d="M0 50a50 50 0 0 1 100 0H70a20 27 0 0 0-40 0z"/><path class="o-abajo" d="M0 50a50 50 0 0 0 100 0H70a20 27 0 0 1-40 0z"/></svg></span>
+        </div>
+        <figcaption class="etiqueta"><b>Dilemas imposibles</b>DIL · 5,1:1 AA</figcaption>
+      </figure>
+      <figure class="par" style="--a:var(--moreton);--b:var(--bilis)">
+        <div class="par__muestra">
+          <p class="par__color par__color--a"><b>Moretón</b><span>#3D1C63</span></p>
+          <p class="par__color par__color--b"><b>Bilis</b><span>#D6D24A</span></p>
+          <span class="par__o"><svg viewBox="0 0 100 100" aria-hidden="true" focusable="false"><path class="o-arriba" d="M0 50a50 50 0 0 1 100 0H70a20 27 0 0 0-40 0z"/><path class="o-abajo" d="M0 50a50 50 0 0 0 100 0H70a20 27 0 0 1-40 0z"/></svg></span>
+        </div>
+        <figcaption class="etiqueta"><b>Qué asco</b>ASC · 8,5:1 AAA</figcaption>
+      </figure>
+    </div>
+    <ul class="neutros">
+      <li><span class="neutros__muestra" style="background:var(--papel)"></span><p style="margin:0"><b>Papel</b><code>#FFFFFF</code></p><span>Mitad de arriba de la carta en blanco: la base para escribir. Con Perejil encima, 9,2:1.</span></li>
+      <li><span class="neutros__muestra" style="background:var(--tinta)"></span><p style="margin:0"><b>Tinta</b><code>#16171C</code></p><span>Texto de interfaz y de esta lámina. Nunca entra en una carta: ahí solo hay dos colores.</span></li>
+      <li><span class="neutros__muestra" style="background:var(--mesa);box-shadow:inset 0 0 0 1.5px var(--tinta)"></span><p style="margin:0"><b>Mesa</b><code>#E8E9EC</code></p><span>Fondo neutro para menús, ajustes del mazo y esta lámina. Tinta encima, 14,7:1.</span></li>
+    </ul>
+  </section>
+
+  <section class="seccion" id="tipografias">
+    <header class="seccion__cab">
+      <span class="seccion__num">07</span>
+      <h2 class="seccion__titulo">Tipografías</h2>
+      <p class="seccion__nota">Dos familias de Omnibus-Type (Buenos Aires), con licencia abierta para pantalla e imprenta. Archivo es la voz, y su eje de ancho la reparte: expandida para la marca, apretada para las cartas.</p>
+    </header>
+    <div class="tipos">
+      <div class="tipo">
+        <p class="etiqueta tipo__nombre"><b>La voz</b> · variable: ancho 62–125, peso 100–900</p>
+        <p class="tipo__familia">Archivo</p>
+        <div class="muestra"><p class="etiqueta"><b>Black 900 · ancho 125</b> · logotipo y reverso</p><p class="m-125">Cilantro o Perejil</p></div>
+        <div class="muestra"><p class="etiqueta"><b>Black 900 · ancho 80</b> · opciones cortas (t-corta)</p><p class="m-c100">cilantro o perejil</p></div>
+        <div class="muestra"><p class="etiqueta"><b>850 · ancho 80</b> · opciones medias (t-media)</p><p class="m-92">ver auroras boreales en Islandia</p></div>
+        <div class="muestra"><p class="etiqueta"><b>ExtraBold 800 · ancho 78</b> · opciones largas (t-larga)</p><p class="m-78">estornudar cada vez que alguien dice tu nombre</p></div>
+        <div class="muestra"><p class="etiqueta"><b>ExtraBold 800 · ancho 100</b> · arranque de carta · <b>Black 900 · ancho 112</b> · títulos, botones y versión compacta</p><p class="m-100">¿Qué prefieres…</p></div>
+        <div class="muestra"><p class="etiqueta"><b>Medium 500 · ancho 100</b> · texto corrido de la app y del instructivo</p><p class="m-texto">No se vale responder «las dos» ni «ninguna». Explicar la elección no es obligatorio, pero los demás pueden preguntar ¿por qué?, y ahí empieza la discusión.</p></div>
+        <div class="muestra"><p class="etiqueta"><b>Signos del español</b></p><p class="m-signos">¿ ¡ ñ á é í ó ú ü « »</p></div>
+      </div>
+      <div class="tipo tipo--dato">
+        <p class="etiqueta tipo__nombre"><b>El dato</b> · variable: peso 300–700</p>
+        <p class="tipo__familia">Chivo Mono</p>
+        <div class="muestra"><p class="etiqueta"><b>Bold 700</b> · código de carta</p><p class="d-codigo">COM·01</p></div>
+        <div class="muestra"><p class="etiqueta"><b>Medium 500</b> · categoría al pie y etiquetas</p><p class="d-pie">Celebrities y cultura pop</p></div>
+        <div class="muestra"><p class="etiqueta"><b>Regular 400</b> · medidas, hex y ajustes del mazo</p><p class="d-dato">#FFB62E · 63 × 88 mm · 8cqw<br>110 preguntas + 10 en blanco</p></div>
+        <div class="muestra"><p class="etiqueta"><b>Signos del español</b></p><p class="d-signos">¿ ¡ ñ á é í ó ú ü « »</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="seccion" id="telefono">
+    <header class="seccion__cab">
+      <span class="seccion__num">08</span>
+      <h2 class="seccion__titulo">En el teléfono</h2>
+      <p class="seccion__nota">Pantalla de juego a 390 × 844. La carta manda y el teléfono entero se parte con ella. Sin puntos, marcadores ni temporizadores: no hay nada que contar.</p>
+    </header>
+    <div class="movil">
+      <div class="telefono">
+        <div class="pantalla tema-dilemas">
+          <div class="pantalla__estado">
+            <span>9:41</span>
+            <svg viewBox="0 0 64 12" aria-hidden="true"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5.5" width="3" height="6.5" rx="1"/><rect x="10" y="3" width="3" height="9" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/><rect x="38" y="0" width="23" height="12" rx="3.5"/><rect x="62" y="4" width="2" height="4" rx="1"/></svg>
+          </div>
+          <span class="pantalla__isla"></span>
+          <header class="pantalla__barra">
+            <span class="marca-linea">Cilantro<svg class="aro" viewBox="0 0 100 100" aria-hidden="true" focusable="false"><path fill-rule="evenodd" d="M50 0a50 50 0 1 0 0 100A50 50 0 0 0 50 0zm0 23a20 27 0 0 1 0 54a20 27 0 0 1 0-54z"/></svg>Perejil</span>
+            <button class="boton-mazo" type="button"><svg viewBox="0 0 20 20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="11" height="13" rx="2"/><path d="M7 2h9a2 2 0 0 1 2 2v11"/></svg>Mazo</button>
+          </header>
+          <article class="carta carta--dilemas t-larga">
+            <div class="carta__cara">
+              <div class="carta__campo carta__campo--a">
+                <p class="carta__arranque">¿Qué prefieres…</p>
+                <p class="carta__opcion carta__opcion--a">tener hipo cada vez que te ríes</p>
+              </div>
+              <p class="carta__o"><span class="carta__o-texto">o</span><svg viewBox="0 0 100 100" aria-hidden="true" focusable="false"><path class="carta__o-arriba" d="M0 50a50 50 0 0 1 100 0H70a20 27 0 0 0-40 0z"/><path class="carta__o-abajo" d="M0 50a50 50 0 0 0 100 0H70a20 27 0 0 1-40 0z"/></svg></p>
+              <div class="carta__campo carta__campo--b">
+                <p class="carta__opcion carta__opcion--b">estornudar cada vez que alguien dice tu nombre</p>
+                <p class="carta__pie"><span class="carta__codigo">DIL·02</span><span class="carta__categoria">Dilemas imposibles</span></p>
+              </div>
+            </div>
+          </article>
+          <button class="boton-siguiente" type="button"><span>Siguiente</span><svg viewBox="0 0 34 24" aria-hidden="true"><path d="M0 8h20V0l14 12-14 12v-8H0z"/></svg></button>
+          <p class="pantalla__pista">Hay que elegir. Luego toca o desliza.</p>
+          <span class="pantalla__inicio"></span>
+        </div>
+      </div>
+      <div class="movil__lado">
+        <ul class="apuntes apuntes--dos">
+          <li><b>La pantalla también se parte</b>El fondo toma los dos colores de la carta, invertidos, y sigue su costura. Cada carta nueva repinta el teléfono entero.</li>
+          <li><b>Siguiente</b>Un botón del ancho de la carta, al alcance del pulgar. Deslizar la carta hace lo mismo.</li>
+          <li><b>Mazo</b>Acceso discreto arriba a la derecha: elegir categorías, barajar o empezar de nuevo.</li>
+          <li><b>La carta es la de imprenta</b>Mismo componente a 318 px de ancho; nada se redibuja para la pantalla.</li>
+        </ul>
+        <div>
+          <div class="minis">
+          <figure>
+            <div class="mini tema-comida">
+              <article class="carta carta--comida t-corta">
+                <div class="carta__cara">
+                  <div class="carta__campo carta__campo--a">
+                    <p class="carta__arranque">¿Qué prefieres…</p>
+                    <p class="carta__opcion carta__opcion--a">cilantro</p>
+                  </div>
+                  <p class="carta__o"><span class="carta__o-texto">o</span><svg viewBox="0 0 100 100" aria-hidden="true" focusable="false"><path class="carta__o-arriba" d="M0 50a50 50 0 0 1 100 0H70a20 27 0 0 0-40 0z"/><path class="carta__o-abajo" d="M0 50a50 50 0 0 0 100 0H70a20 27 0 0 1-40 0z"/></svg></p>
+                  <div class="carta__campo carta__campo--b">
+                    <p class="carta__opcion carta__opcion--b">perejil</p>
+                    <p class="carta__pie"><span class="carta__codigo">COM·01</span><span class="carta__categoria">Comida</span></p>
+                  </div>
+                </div>
+              </article>
+              <span class="mini__boton"></span>
+            </div>
+            <figcaption class="etiqueta">Comida</figcaption>
+          </figure>
+          <figure>
+            <div class="mini tema-celebrities">
+              <article class="carta carta--celebrities t-larga">
+                <div class="carta__cara">
+                  <div class="carta__campo carta__campo--a">
+                    <p class="carta__arranque">¿Qué prefieres…</p>
+                    <p class="carta__opcion carta__opcion--a">que Pedro Pascal sea tu vecino</p>
+                  </div>
+                  <p class="carta__o"><span class="carta__o-texto">o</span><svg viewBox="0 0 100 100" aria-hidden="true" focusable="false"><path class="carta__o-arriba" d="M0 50a50 50 0 0 1 100 0H70a20 27 0 0 0-40 0z"/><path class="carta__o-abajo" d="M0 50a50 50 0 0 0 100 0H70a20 27 0 0 1-40 0z"/></svg></p>
+                  <div class="carta__campo carta__campo--b">
+                    <p class="carta__opcion carta__opcion--b">que Keanu Reeves sea tu compañero de trabajo</p>
+                    <p class="carta__pie"><span class="carta__codigo">CEL·02</span><span class="carta__categoria">Celebrities y cultura pop</span></p>
+                  </div>
+                </div>
+              </article>
+              <span class="mini__boton"></span>
+            </div>
+            <figcaption class="etiqueta">Celebrities y cultura pop</figcaption>
+          </figure>
+          <figure>
+            <div class="mini tema-asco">
+              <article class="carta carta--asco t-larga">
+                <div class="carta__cara">
+                  <div class="carta__campo carta__campo--a">
+                    <p class="carta__arranque">¿Qué prefieres…</p>
+                    <p class="carta__opcion carta__opcion--a">oler los pies sudados de tu mejor amigx</p>
+                  </div>
+                  <p class="carta__o"><span class="carta__o-texto">o</span><svg viewBox="0 0 100 100" aria-hidden="true" focusable="false"><path class="carta__o-arriba" d="M0 50a50 50 0 0 1 100 0H70a20 27 0 0 0-40 0z"/><path class="carta__o-abajo" d="M0 50a50 50 0 0 0 100 0H70a20 27 0 0 1-40 0z"/></svg></p>
+                  <div class="carta__campo carta__campo--b">
+                    <p class="carta__opcion carta__opcion--b">sacarle la cerilla de los oídos</p>
+                    <p class="carta__pie"><span class="carta__codigo">ASC·01</span><span class="carta__categoria">Qué asco</span></p>
+                  </div>
+                </div>
+              </article>
+              <span class="mini__boton"></span>
+            </div>
+            <figcaption class="etiqueta">Qué asco</figcaption>
+          </figure>
+          </div>
+          <p class="etiqueta" style="margin-top:20px"><b>Cada categoría repinta la pantalla</b> · la siguiente carta se anuncia de lejos, pero solo cuando ya llegó.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="seccion" id="lineas">
+    <header class="seccion__cab seccion__cab--corta">
+      <span class="seccion__num">09</span>
+      <h2 class="seccion__titulo">En tres líneas</h2>
+    </header>
+    <dl class="lineas">
+      <div><dt>El concepto</dt><dd>Elegir hecho forma: la carta se parte en dos colores y la «o» vive en la costura, mitad y mitad.</dd></div>
+      <div><dt>Por qué encaja</dt><dd>La única regla es elegir; aquí la carta, el reverso y la pantalla ya vienen partidos en dos.</dd></div>
+      <div><dt>Qué lo distingue</dt><dd>Dos tintas por carta, en pares que no deberían llevarse, y una «o» que se reconoce a tres metros.</dd></div>
+    </dl>
+  </section>
+
+</main>
+</body>
+</html>

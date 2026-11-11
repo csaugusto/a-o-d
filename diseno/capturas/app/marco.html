@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Marco de captura</title>
+<style>
+  html, body { margin: 0; background: #777; }
+  body { display: flex; justify-content: center; }
+  iframe { display: block; flex: none; border: 0; }
+</style>
+</head>
+<body>
+<!--
+  Página de prueba: carga el juego dentro de un iframe del tamaño pedido para
+  capturarlo a anchos de teléfono. Necesita un servidor local en la raíz del
+  repositorio (por ejemplo: python3 -m http.server 8765) porque lee index.html
+  o salida/juego.html con fetch y los monta con srcdoc.
+
+  Parámetros (solo de esta página; el juego no lee la URL):
+    w, h       tamaño del iframe (390 × 844 por omisión)
+    tema       light | dark
+    fuente     index | juego   (juego = salida/juego.html envuelto)
+    escena     inicio | carta | larga | prueba | fin | mazo | dilemas | reglas | resultados
+    bloqueo=1  localStorage lanza error al tocarlo
+-->
+<iframe id="marco" title="Juego"></iframe>
+<script>
+(function () {
+  var q = new URLSearchParams(location.search);
+  var w = +q.get("w") || 390;
+  var h = +q.get("h") || 844;
+  var tema = q.get("tema") || "light";
+  var fuente = q.get("fuente") || "index";
+  var escena = q.get("escena") || "inicio";
+  var bloqueo = q.get("bloqueo") === "1";
+  var marco = document.getElementById("marco");
+  marco.style.width = w + "px";
+  marco.style.height = h + "px";
+
+  var semillas = {
+    carta: { partida: { vistas: ["COM-02", "DIL-14", "COM-05"], pendientes: [], pos: 2 } },
+    larga: { partida: { vistas: ["COM-02", "ASC-07"], pendientes: [], pos: 1 } },
+    prueba: {
+      ajustes: { inactivas: [], propios: true, prueba: true },
+      marcas: { "COM-01": "queda", "DIL-14": "facil", "ASC-07": "queda", "COM-07": "fuera", "CEL-03": "queda" },
+      partida: { vistas: ["COM-01", "DIL-14"], pendientes: [], pos: 1 }
+    },
+    mazo: {
+      ajustes: { inactivas: ["asco"], propios: true, prueba: false },
+      propios: [{ id: "TU-1", a: "quedarte atorado en un elevador con tu exjefe", b: "cantar el himno frente a toda tu oficina" }],
+      partida: { vistas: ["COM-01"], pendientes: [], pos: 0 }
+    },
+    dilemas: {
+      propios: [
+        { id: "TU-1", a: "quedarte atorado en un elevador con tu exjefe", b: "cantar el himno frente a toda tu oficina" },
+        { id: "TU-2", a: "pan dulce", b: "pan salado" }
+      ],
+      siguiente: 3,
+      partida: { vistas: ["COM-01"], pendientes: [], pos: 0 }
+    },
+    reglas: { partida: { vistas: ["COM-01"], pendientes: [], pos: 0 } },
+    resultados: {
+      ajustes: { inactivas: [], propios: true, prueba: true },
+      marcas: { "COM-01": "queda", "DIL-14": "facil", "ASC-07": "queda", "COM-07": "fuera", "CEL-03": "queda", "FAM-02": "facil" },
+      partida: { vistas: ["COM-01"], pendientes: [], pos: 0 }
+    }
+  };
+
+  var previo = "<script>" +
+    "document.documentElement.setAttribute('data-theme'," + JSON.stringify(tema) + ");" +
+    "(function(){var n=12345;Math.random=function(){n=(n*1664525+1013904223)%4294967296;return n/4294967296;};})();" +
+    (bloqueo
+      ? "Object.defineProperty(window,'localStorage',{configurable:true,get:function(){throw new Error('bloqueado');}});"
+      : "try{localStorage.clear();" + (semillas[escena] ? "localStorage.setItem('aod-juego-v1'," + JSON.stringify(JSON.stringify(semillas[escena])) + ");" : "") + "}catch(e){}") +
+    "<\/script>";
+
+  function acciones(v, d) {
+    var clic = function (id) { d.getElementById(id).click(); };
+    if (escena === "fin") { for (var i = 0; i < 111; i++) v.AoD.siguiente(); }
+    if (escena === "mazo") clic("abrir-mazo");
+    if (escena === "reglas") clic("abrir-reglas");
+    if (escena === "resultados") clic("chip-prueba");
+    if (escena === "dilemas") {
+      clic("abrir-dilemas");
+      var a = d.getElementById("dilema-a");
+      var b = d.getElementById("dilema-b");
+      a.value = "tener que cantar todo lo que dices";
+      a.dispatchEvent(new v.Event("input", { bubbles: true }));
+      b.value = "bailar cada vez que suena música";
+      b.dispatchEvent(new v.Event("input", { bubbles: true }));
+    }
+  }
+
+  fetch(fuente === "juego" ? "/salida/juego.html" : "/index.html").then(function (r) { return r.text(); }).then(function (texto) {
+    var doc = fuente === "juego"
+      ? "<!doctype html><html lang=\"es\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1, viewport-fit=cover\">" +
+        previo + "</head><body>" + texto + "</body></html>"
+      : texto.replace(/<head>/i, "<head><base href=\"/\">" + previo);
+    marco.onload = function () {
+      var v = marco.contentWindow;
+      setTimeout(function () { acciones(v, v.document); }, 600);
+    };
+    marco.srcdoc = doc;
+  });
+})();
+</script>
+</body>
+</html>

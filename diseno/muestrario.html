@@ -1,0 +1,386 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Muestrario de cartas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=Covered+By+Your+Grace&family=Mansalva&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/tokens.css">
+<link rel="stylesheet" href="../css/carta.css">
+<style>
+* { box-sizing: border-box; }
+html { background: var(--mesa); }
+body {
+  margin: 0;
+  color: var(--mesa-texto);
+  font-family: var(--imprenta);
+  font-size: 15px;
+  line-height: 1.45;
+  background: radial-gradient(circle at 1px 1px, var(--mesa-linea) 1px, transparent 1.7px) 0 0 / 22px 22px, var(--mesa);
+  -webkit-font-smoothing: antialiased;
+}
+.hoja { max-width: 1400px; margin: 0 auto; padding: 40px 16px 80px; }
+@media (min-width: 700px) { .hoja { padding: 40px 48px 80px; } }
+
+.cabeza { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 24px; }
+.cabeza__logo { width: min(440px, 100%); }
+.cabeza__logo .logo, .logos__grande .logo { color: var(--mesa-texto); }
+.estado {
+  display: grid; gap: 4px; justify-items: end; text-align: right;
+}
+.rotulo {
+  margin: 0; font-stretch: 72%; font-weight: 650; font-size: 12px; line-height: 1.3;
+  letter-spacing: .16em; text-transform: uppercase;
+}
+.tenue { color: var(--mesa-tenue); }
+.cuenta { font-family: var(--mano-b); font-size: 34px; line-height: 1; }
+.cuenta[data-hay="si"] { color: #C0272D; }
+#detalle { margin: 8px 0 0; padding: 0; list-style: none; font-size: 13px; color: #C0272D; }
+.tema {
+  font: inherit; font-size: 13px; color: inherit; background: none; cursor: pointer;
+  border: 1.5px solid var(--mesa-linea); border-radius: 999px; padding: 6px 14px;
+}
+
+section { margin-top: 72px; }
+section > h2 {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16px;
+  margin: 0 0 28px; font-family: var(--mano-a); font-weight: 400; font-size: 40px; line-height: 1.05;
+  -webkit-text-stroke: .012em currentColor;
+}
+section > h2 .rotulo { font-family: var(--imprenta); -webkit-text-stroke: 0; color: var(--mesa-tenue); }
+
+.mesa { display: grid; grid-template-columns: repeat(auto-fill, 300px); gap: 40px 36px; justify-content: start; }
+@media (max-width: 380px) { .mesa { grid-template-columns: 1fr; } }
+.ficha { margin: 0; min-width: 0; }
+.ficha .carta { box-shadow: 0 1px 1px rgba(23, 30, 90, .1), 0 16px 28px -14px var(--mesa-sombra); }
+.ficha figcaption { margin-top: 12px; }
+.ficha figcaption small { display: block; font-size: 12.5px; color: var(--mesa-tenue); }
+.carta[data-desborde="si"] { outline: 4px solid #C0272D; outline-offset: 4px; }
+
+.logos { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 40px 56px; }
+.logos__grande { width: min(560px, 100%); }
+.chip { width: 300px; padding: 24px 40px; border-radius: 18px; background: var(--tinta); }
+.iconos { display: flex; align-items: flex-end; gap: 22px; }
+
+.sangra { position: relative; container-type: inline-size; padding: calc(100% * 5 / 110); background: repeating-linear-gradient(45deg, transparent 0 6px, var(--mesa-linea) 6px 7px); }
+.sangra .guia { position: absolute; pointer-events: none; z-index: 1; }
+.sangra .corte { inset: calc(100cqw * 5 / 110); border: 1.2px dashed #C0272D; border-radius: calc(100cqw * 5 / 110); }
+.sangra .segura { inset: calc(100cqw * 13 / 110); border: 1.2px dotted #C0272D; border-radius: 3px; opacity: .8; }
+.real { width: 63.5mm; }
+</style>
+</head>
+<body>
+<main class="hoja">
+  <header class="cabeza">
+    <div class="cabeza__logo" id="logo-cabeza"></div>
+    <div class="estado">
+      <p class="rotulo tenue">Muestrario de cartas · Sobremesa a mano</p>
+      <p class="cuenta">Desbordes: <span id="desbordes">midiendo…</span></p>
+      <p class="rotulo tenue" id="fuentes">Tipografías: cargando…</p>
+      <ul id="detalle"></ul>
+      <button class="tema" type="button" id="tema">Cambiar mesa clara / oscura</button>
+    </div>
+  </header>
+
+  <section>
+    <h2>Logotipo <span class="rotulo">Completo · sobre azul · ícono a 128, 64, 32 y 16 px</span></h2>
+    <div class="logos">
+      <div class="logos__grande" id="logo-completo"></div>
+      <div class="chip" id="logo-claro"></div>
+      <div class="iconos" id="iconos"></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Piezas fijas <span class="rotulo">Portada · reglas · reverso · en blanco · dilema propio de 60 caracteres</span></h2>
+    <div class="mesa" id="piezas"></div>
+  </section>
+
+  <section>
+    <h2>Impresión <span class="rotulo">Con sangrado (línea de corte y zona segura) · ahorro de tinta · tamaño real</span></h2>
+    <div class="mesa" id="impresion"></div>
+  </section>
+
+  <div id="mazo"></div>
+</main>
+
+<script src="../js/cartas.js"></script>
+<script src="../js/carta.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  function ficha(destino, carta, titulo, nota) {
+    var fig = document.createElement("figure");
+    fig.className = "ficha";
+    fig.appendChild(carta);
+    var cap = document.createElement("figcaption");
+    cap.innerHTML = "<p class=\"rotulo\"></p><small></small>";
+    cap.firstChild.textContent = titulo;
+    cap.lastChild.textContent = nota || "";
+    fig.appendChild(cap);
+    destino.appendChild(fig);
+    return fig;
+  }
+
+  function conSangrado(carta) {
+    var caja = document.createElement("div");
+    caja.className = "sangra";
+    caja.appendChild(carta);
+    caja.insertAdjacentHTML("beforeend", "<span class=\"guia corte\"></span><span class=\"guia segura\"></span>");
+    return caja;
+  }
+
+  var M = window.MAZO;
+  var comida = M.categorias[0];
+  var primera = comida.cartas[0];
+
+  document.getElementById("logo-cabeza").appendChild(Carta.logotipo({ variante: "completo" }));
+  document.getElementById("logo-completo").appendChild(Carta.logotipo({ variante: "completo" }));
+  document.getElementById("logo-claro").appendChild(Carta.logotipo({ claro: true }));
+  [128, 64, 32, 16].forEach(function (px) {
+    var icono = Carta.logotipo({ variante: "icono" });
+    icono.style.width = px + "px";
+    document.getElementById("iconos").appendChild(icono);
+  });
+
+  var piezas = document.getElementById("piezas");
+  ficha(piezas, Carta.portada(), "Portada", "Carta extra");
+  ficha(piezas, Carta.reglas(), "Reglas", "Carta extra");
+  ficha(piezas, Carta.reverso(), "Reverso", "Igual para todas; se lee igual girada");
+  ficha(piezas, Carta.enBlanco(), "En blanco", "10 por mazo · renglones a 6.6 mm");
+  var propiaA = "quedarte atorado en un elevador con tu exjefe por seis horas";
+  var propiaB = "cantar el himno nacional completito frente a toda tu oficina";
+  ficha(piezas, Carta.propia({ a: propiaA, b: propiaB }), "Dilema propio", propiaA.length + " y " + propiaB.length + " caracteres");
+
+  var impresion = document.getElementById("impresion");
+  var celeb = M.categorias[3];
+  ficha(impresion, conSangrado((function () { var c = Carta.frente(primera, comida); c.classList.add("carta--sangrado"); return c; })()), "Frente con sangrado", "69.85 × 95.25 mm");
+  ficha(impresion, conSangrado((function () { var c = Carta.reverso(); c.classList.add("carta--sangrado"); return c; })()), "Reverso con sangrado", "Sin marcos: aguanta 2 mm de corte chueco");
+  [
+    [Carta.frente(celeb.cartas[1], celeb), "Frente ahorro"],
+    [Carta.reverso(), "Reverso ahorro"],
+    [Carta.enBlanco(), "En blanco ahorro"]
+  ].forEach(function (par) {
+    par[0].classList.add("carta--ahorro");
+    ficha(impresion, par[0], par[1], "Para imprimir en casa");
+  });
+  var ambos = Carta.frente(M.categorias[5].cartas[0], M.categorias[5]);
+  ambos.classList.add("carta--ahorro", "carta--sangrado");
+  ficha(impresion, conSangrado(ambos), "Ahorro con sangrado", "La franja llega al borde del archivo");
+  var real = ficha(impresion, Carta.frente(primera, comida), "Tamaño real", "63.5 mm de ancho");
+  real.classList.add("real");
+
+  var mazo = document.getElementById("mazo");
+  M.categorias.forEach(function (cat) {
+    var sec = document.createElement("section");
+    sec.innerHTML = "<h2><span></span><span class=\"rotulo\"></span></h2><div class=\"mesa\"></div>";
+    sec.querySelector("h2 span").textContent = cat.nombre;
+    sec.querySelector("h2 .rotulo").textContent = cat.cartas.length + " cartas · " + cat.codigo;
+    var mesa = sec.querySelector(".mesa");
+    cat.cartas.forEach(function (c) {
+      var carta = Carta.frente(c, cat);
+      ficha(mesa, carta, c.id + " · " + carta.className.match(/t-\w+/)[0], c.a.length + " y " + c.b.length + " caracteres");
+    });
+    mazo.appendChild(sec);
+  });
+
+  document.getElementById("tema").addEventListener("click", function () {
+    var raiz = document.documentElement;
+    var oscuro = raiz.dataset.theme ? raiz.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+    raiz.dataset.theme = oscuro ? "light" : "dark";
+  });
+
+  // ---------- Medición: desbordes, cortes y zona segura ----------
+
+  var PIEZAS = ".carta__arranque, .carta__garabato, .carta__opcion, .carta__o, .carta__pie, " +
+    ".carta__renglones, .carta__regla, .reglas__titulo, .reglas__lista > li, .reglas__cierre, " +
+    ".logo__marca, .logo__descriptor, .logo__lema, .portada__papeles";
+
+  function union(rects) {
+    var u = null;
+    rects.forEach(function (r) {
+      if (!r || r.width <= 0 || r.height <= 0) return;
+      if (!u) { u = { l: r.left, t: r.top, r: r.right, b: r.bottom }; return; }
+      u.l = Math.min(u.l, r.left); u.t = Math.min(u.t, r.top);
+      u.r = Math.max(u.r, r.right); u.b = Math.max(u.b, r.bottom);
+    });
+    return u;
+  }
+
+  // Las cajas de texto del navegador miden el alto de la fuente, no la tinta:
+  // con letra a mano sobra mucho arriba. Se recorta cada renglón a la tinta
+  // real con las métricas del canvas (más la mitad del contorno).
+  var lienzo = document.createElement("canvas").getContext("2d");
+
+  function giro(el, tope) {
+    var grados = 0;
+    for (var n = el; n && n !== tope; n = n.parentElement) {
+      var t = getComputedStyle(n).transform;
+      if (t && t !== "none") {
+        var m = new DOMMatrix(t);
+        grados += Math.atan2(m.b, m.a) * 180 / Math.PI;
+      }
+    }
+    return Math.abs(((grados % 360) + 540) % 360 - 180) < 90;
+  }
+
+  function tintaTexto(nodo, carta) {
+    var el = nodo.parentElement;
+    var s = getComputedStyle(el);
+    var texto = s.textTransform === "uppercase" ? nodo.textContent.toUpperCase() : nodo.textContent;
+    lienzo.font = s.fontStyle + " " + s.fontWeight + " " + s.fontSize + " " + s.fontFamily;
+    var m = lienzo.measureText(texto.trim());
+    var contorno = (parseFloat(s.webkitTextStrokeWidth) || 0) / 2;
+    var arriba = m.fontBoundingBoxAscent - m.actualBoundingBoxAscent - contorno;
+    var abajo = m.fontBoundingBoxAscent + m.actualBoundingBoxDescent + contorno;
+    var alto = m.fontBoundingBoxAscent + m.fontBoundingBoxDescent;
+    var izq = Math.max(0, m.actualBoundingBoxLeft) + contorno;
+    var der = Math.max(0, m.actualBoundingBoxRight - m.width) + contorno;
+    var deCabeza = giro(el, carta);
+    var rango = document.createRange();
+    rango.selectNodeContents(nodo);
+    return Array.prototype.map.call(rango.getClientRects(), function (r) {
+      if (r.width <= 0) return null;
+      // Si el texto va de cabeza, lo que sobra arriba queda abajo.
+      var t = deCabeza ? r.top + (alto - abajo) : r.top + arriba;
+      var b = deCabeza ? r.top + (alto - arriba) : r.top + abajo;
+      return { left: r.left - izq, right: r.right + der, top: t, bottom: b, width: 1, height: 1 };
+    }).filter(Boolean);
+  }
+
+  function textos(el) {
+    var lista = [];
+    var paseo = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    var nodo;
+    while ((nodo = paseo.nextNode())) {
+      if (!nodo.textContent.trim() || nodo.parentElement.closest(".carta__frase")) continue;
+      lista.push(nodo);
+    }
+    return lista;
+  }
+
+  function cajaPieza(el, carta) {
+    var rects = [];
+    textos(el).forEach(function (n) { rects = rects.concat(tintaTexto(n, carta)); });
+    el.querySelectorAll("use").forEach(function (u) { rects.push(u.getBoundingClientRect()); });
+    if (el.matches("svg")) rects.push(el.querySelector("use").getBoundingClientRect());
+    if (!rects.length) rects.push(el.getBoundingClientRect());
+    return union(rects);
+  }
+
+  function palabrasPartidas(el) {
+    var partidas = 0;
+    textos(el).forEach(function (nodo) {
+      var re = /\S+/g, m;
+      while ((m = re.exec(nodo.textContent))) {
+        var rango = document.createRange();
+        rango.setStart(nodo, m.index);
+        rango.setEnd(nodo, m.index + m[0].length);
+        if (rango.getClientRects().length > 1) partidas++;
+      }
+    });
+    return partidas;
+  }
+
+  function pieza(el) {
+    return (el.getAttribute("class") || el.tagName.toLowerCase()).split(" ").pop();
+  }
+
+  function revisar(carta) {
+    var problemas = [];
+    var r = carta.getBoundingClientRect();
+    var u = r.width / 100;
+    var tol = .5;
+    var zona = { l: r.left + 8 * u - tol, t: r.top + 8 * u - tol, r: r.right - 8 * u + tol, b: r.bottom - 8 * u + tol };
+
+    textos(carta).forEach(function (nodo) {
+      tintaTexto(nodo, carta).forEach(function (t) {
+        var margen = Math.min(t.left - r.left, r.right - t.right, t.top - r.top, r.bottom - t.bottom) / u;
+        if (margen < 8 - tol / u) {
+          problemas.push("texto a " + margen.toFixed(1) + "cqw del borde: " + pieza(nodo.parentElement));
+        }
+      });
+    });
+
+    carta.querySelectorAll(".carta__opcion, .carta__arranque, .carta__pie span, .reglas__lista li > span:last-child, .logo__descriptor").forEach(function (el) {
+      if (el.scrollWidth > el.clientWidth + 1 && getComputedStyle(el).display !== "inline") {
+        problemas.push("se desborda a lo ancho: " + pieza(el));
+      }
+      if (palabrasPartidas(el)) problemas.push("palabra partida: " + pieza(el));
+    });
+
+    var piezas = Array.prototype.map.call(carta.querySelectorAll(PIEZAS), function (el) {
+      return { el: el, caja: cajaPieza(el, carta) };
+    });
+    piezas.forEach(function (p) {
+      var c = p.caja;
+      if (!c) return;
+      if (c.l < zona.l || c.r > zona.r || c.t < zona.t || c.b > zona.b) {
+        problemas.push("invade la zona segura: " + pieza(p.el));
+      }
+    });
+    for (var i = 0; i < piezas.length; i++) {
+      for (var j = i + 1; j < piezas.length; j++) {
+        var a = piezas[i], b = piezas[j];
+        if (!a.caja || !b.caja || a.el.contains(b.el) || b.el.contains(a.el)) continue;
+        var ancho = Math.min(a.caja.r, b.caja.r) - Math.max(a.caja.l, b.caja.l);
+        var alto = Math.min(a.caja.b, b.caja.b) - Math.max(a.caja.t, b.caja.t);
+        if (ancho > 1 && alto > 1) {
+          problemas.push("se encima: " + pieza(a.el) + " con " + pieza(b.el));
+        }
+      }
+    }
+
+    problemas = problemas.filter(function (p, i) { return problemas.indexOf(p) === i; });
+    if (problemas.length) {
+      carta.dataset.desborde = "si";
+      carta.title = problemas.join(" · ");
+    } else {
+      delete carta.dataset.desborde;
+      carta.removeAttribute("title");
+    }
+    return problemas;
+  }
+
+  function nombreCarta(carta) {
+    return carta.dataset.id || carta.className.split(" ").filter(function (c) { return c.indexOf("carta--") === 0; }).join(" ");
+  }
+
+  function medir() {
+    var detalle = document.getElementById("detalle");
+    detalle.textContent = "";
+    var total = 0;
+    document.querySelectorAll(".carta").forEach(function (carta) {
+      var problemas = revisar(carta);
+      if (!problemas.length) return;
+      total++;
+      var li = document.createElement("li");
+      li.textContent = nombreCarta(carta) + ": " + problemas.join(" · ");
+      detalle.appendChild(li);
+    });
+    var salida = document.getElementById("desbordes");
+    salida.textContent = String(total);
+    salida.parentElement.dataset.hay = total ? "si" : "no";
+
+    var familias = [["Mansalva", "20px \"Mansalva\""], ["Covered By Your Grace", "20px \"Covered By Your Grace\""], ["Archivo", "650 20px \"Archivo\""]];
+    document.getElementById("fuentes").textContent = "Tipografías: " + familias.map(function (f) {
+      return f[0] + (document.fonts.check(f[1], "¿Qué ñ á") ? " cargada" : " de respaldo");
+    }).join(" · ");
+  }
+
+  var cargas = [
+    document.fonts.load("20px Mansalva", "¿Qué prefieres… ñ á é í ó ú"),
+    document.fonts.load("20px \"Covered By Your Grace\"", "¿Qué prefieres… ñ á é í ó ú"),
+    document.fonts.load("650 20px Archivo", "COMIDA · COM·01 ÑÚ")
+  ];
+  Promise.all(cargas).catch(function () {}).then(function () { return document.fonts.ready; }).then(function () {
+    setTimeout(medir, 60);
+  });
+  window.medirCartas = medir;
+})();
+</script>
+</body>
+</html>

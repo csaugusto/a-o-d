@@ -1,0 +1,297 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prueba casera</title>
+<!--
+  Nueve cartas por hoja (3 × 3) a tamaño real, pegadas borde con borde y
+  centradas; marcas de corte solo en los márgenes.
+
+  ?papel=carta | a4      8.5 × 11 in (por omisión) o 210 × 297 mm
+  ?tinta=ahorro | color  fondo blanco con franja (por omisión) o a todo color
+  ?reverso=si            agrega al final una hoja de reversos
+  ?pagina=8.5x11         tamaño de página en pulgadas (lo usa scripts/exportar.mjs)
+  ?revisar=si            agrega un informe con medidas y fuentes
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=Covered+By+Your+Grace&family=Mansalva&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/tokens.css">
+<link rel="stylesheet" href="../css/carta.css">
+<style>
+html, body { margin: 0; padding: 0; }
+html {
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.hoja {
+  position: relative;
+  overflow: hidden;
+  background: #fff;
+  color: #000;
+}
+.hoja + .hoja { break-before: page; }
+
+.rejilla {
+  position: absolute;
+  display: grid;
+  grid-template-columns: repeat(3, 63.5mm);
+  grid-auto-rows: 88.9mm;
+}
+
+/* La carta lleva sangrado y la celda lo recorta en la línea de corte: si la
+   guillotina se desvía, aparece color de la carta, no papel blanco. */
+.celda {
+  position: relative;
+  width: 63.5mm;
+  height: 88.9mm;
+  overflow: hidden;
+}
+
+.marcas {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+}
+
+.cabeza {
+  position: absolute;
+  top: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 63.5mm);
+  align-items: center;
+  font-family: var(--imprenta);
+  font-stretch: 75%;
+  font-weight: 600;
+  font-size: 6.5pt;
+  line-height: 1;
+  letter-spacing: .03em;
+  white-space: nowrap;
+}
+.cabeza span { padding: 0 3mm; text-align: center; overflow: hidden; }
+
+.aviso {
+  margin: 24px;
+  font: 16px/1.4 var(--imprenta);
+  color: #a00;
+}
+
+@media screen {
+  body {
+    display: grid;
+    justify-content: center;
+    gap: 24px;
+    padding: 24px;
+    background: #7d828c;
+  }
+  .hoja { box-shadow: 0 2px 10px rgba(0, 0, 0, .35); }
+}
+</style>
+</head>
+<body>
+<script src="../js/cartas.js"></script>
+<script src="../js/carta.js"></script>
+<script src="comun.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  var PAPELES = {
+    carta: { ancho: 215.9, alto: 279.4, css: ["8.5in", "11in"], nombre: "Carta" },
+    a4: { ancho: 210, alto: 297, css: ["210mm", "297mm"], nombre: "A4" }
+  };
+  var CARTA = { ancho: 63.5, alto: 88.9 };
+  var COLUMNAS = 3, FILAS = 3;
+  var GRUESO = 0.15;     // mm: marcas finas
+  var SEPARACION = 1.5;  // mm entre la marca y la línea de corte
+  var LARGO = 5;         // mm como máximo
+  var ORILLA = 1;        // mm que se dejan libres en la orilla del papel
+
+  var p = Impresion.parametros();
+  var papelClave = p.get("papel") || "carta";
+  var tinta = p.get("tinta") || "ahorro";
+  var conReverso = p.get("reverso") === "si";
+  var papel = PAPELES[papelClave];
+
+  try {
+    if (!papel) throw new Error("Valor desconocido: papel=" + papelClave + ". Usa carta o a4.");
+    if (tinta !== "ahorro" && tinta !== "color") throw new Error("Valor desconocido: tinta=" + tinta + ". Usa ahorro o color.");
+  } catch (e) {
+    document.body.innerHTML = "<p class=\"aviso\"></p>";
+    document.body.firstChild.textContent = e.message;
+    document.documentElement.dataset.error = e.message;
+    return;
+  }
+
+  Impresion.tamanoPagina(papel.css[0], papel.css[1]);
+
+  var rejillaAncho = COLUMNAS * CARTA.ancho;
+  var rejillaAlto = FILAS * CARTA.alto;
+  var mx = (papel.ancho - rejillaAncho) / 2;
+  var my = (papel.alto - rejillaAlto) / 2;
+  var NS = "http://www.w3.org/2000/svg";
+
+  function svg(nombre, atributos, padre) {
+    var el = document.createElementNS(NS, nombre);
+    Object.keys(atributos).forEach(function (k) { el.setAttribute(k, atributos[k]); });
+    padre.appendChild(el);
+    return el;
+  }
+
+  function linea(padre, x1, y1, x2, y2) {
+    svg("line", { x1: x1, y1: y1, x2: x2, y2: y2 }, padre);
+  }
+
+  function marcas(hoja, conRegla) {
+    var lienzo = svg("svg", {
+      class: "marcas",
+      viewBox: "0 0 " + papel.ancho + " " + papel.alto,
+      width: papel.ancho + "mm",
+      height: papel.alto + "mm",
+      "aria-hidden": "true"
+    }, hoja);
+    var trazos = svg("g", { stroke: "#000", "stroke-width": GRUESO, "stroke-linecap": "butt" }, lienzo);
+    var largoV = Math.min(LARGO, my - SEPARACION - ORILLA);
+    var largoH = Math.min(LARGO, mx - SEPARACION - ORILLA);
+    for (var c = 0; c <= COLUMNAS; c++) {
+      var x = mx + c * CARTA.ancho;
+      linea(trazos, x, my - SEPARACION, x, my - SEPARACION - largoV);
+      linea(trazos, x, my + rejillaAlto + SEPARACION, x, my + rejillaAlto + SEPARACION + largoV);
+    }
+    for (var f = 0; f <= FILAS; f++) {
+      var y = my + f * CARTA.alto;
+      linea(trazos, mx - SEPARACION, y, mx - SEPARACION - largoH, y);
+      linea(trazos, mx + rejillaAncho + SEPARACION, y, mx + rejillaAncho + SEPARACION + largoH, y);
+    }
+    if (conRegla) regla(lienzo);
+  }
+
+  // Regla de 50 mm en el margen izquierdo, a la altura de la fila de en medio
+  // (entre dos marcas de corte). Si al imprimir no mide 50 mm, la impresora
+  // escaló la hoja.
+  function regla(lienzo) {
+    var x0 = mx - 2.5;
+    var y0 = my + CARTA.alto * 1.5 - 25;
+    var g = svg("g", { stroke: "#000", "stroke-width": GRUESO, "stroke-linecap": "butt" }, lienzo);
+    linea(g, x0, y0, x0, y0 + 50);
+    for (var i = 0; i <= 50; i++) {
+      var largo = i % 10 === 0 ? 2.5 : i % 5 === 0 ? 1.75 : 1;
+      linea(g, x0, y0 + i, x0 - largo, y0 + i);
+    }
+    var texto = svg("text", {
+      x: 0, y: 0,
+      transform: "translate(" + (x0 - 3.3) + " " + (y0 + 25) + ") rotate(-90)",
+      "text-anchor": "middle",
+      "font-size": 2.1,
+      "font-family": "Archivo, Arial Narrow, sans-serif",
+      "font-weight": 600,
+      "font-stretch": "75%",
+      fill: "#000"
+    }, lienzo);
+    texto.textContent = "Regla de control · 50 mm";
+  }
+
+  function cabeza(hoja, numero, total, que) {
+    var M = window.MAZO;
+    var div = document.createElement("div");
+    div.className = "cabeza";
+    div.style.left = mx + "mm";
+    div.style.height = my + "mm";
+    [
+      M.nombre + " · " + M.descriptor,
+      "Hoja " + numero + " de " + total + " · " + que,
+      "Imprime al 100 %, sin ajustar a la página"
+    ].forEach(function (t) {
+      var span = document.createElement("span");
+      span.textContent = t;
+      div.appendChild(span);
+    });
+    hoja.appendChild(div);
+  }
+
+  function hoja(claves, numero, total, que) {
+    var h = document.createElement("section");
+    h.className = "hoja";
+    h.style.width = papel.ancho + "mm";
+    h.style.height = papel.alto + "mm";
+    var rejilla = document.createElement("div");
+    rejilla.className = "rejilla";
+    rejilla.style.left = mx + "mm";
+    rejilla.style.top = my + "mm";
+    claves.forEach(function (clave) {
+      var carta = Impresion.crear(clave);
+      carta.classList.add("carta--sangrado");
+      if (tinta === "ahorro") carta.classList.add("carta--ahorro");
+      var celda = document.createElement("div");
+      celda.className = "celda";
+      celda.dataset.clave = clave;
+      celda.appendChild(carta);
+      rejilla.appendChild(celda);
+    });
+    h.appendChild(rejilla);
+    marcas(h, numero === 1);
+    cabeza(h, numero, total, que);
+    document.body.appendChild(h);
+  }
+
+  var porHoja = COLUMNAS * FILAS;
+  var frentes = Impresion.mazo().map(function (c) { return c.clave; });
+  var hojasFrentes = Math.ceil(frentes.length / porHoja);
+  var total = hojasFrentes + (conReverso ? 1 : 0);
+  var modo = tinta === "ahorro" ? "ahorro de tinta" : "a color";
+  for (var i = 0; i < hojasFrentes; i++) {
+    hoja(frentes.slice(i * porHoja, (i + 1) * porHoja), i + 1, total, "Frentes, " + modo);
+  }
+  if (conReverso) {
+    var reversos = [];
+    for (var r = 0; r < porHoja; r++) reversos.push("reverso");
+    hoja(reversos, total, total, "Reversos, " + modo);
+  }
+
+  Impresion.prepararParaPdf().then(Impresion.fuentes).then(function (cargadas) {
+    var MM = Impresion.MM;
+    var medidas = { ancho: [Infinity, 0], alto: [Infinity, 0] };
+    var centrado = 0;
+    var cartas = 0;
+    document.querySelectorAll(".hoja").forEach(function (h) {
+      var rh = h.getBoundingClientRect();
+      var izq = Infinity, der = -Infinity, arr = Infinity, aba = -Infinity;
+      h.querySelectorAll(".celda").forEach(function (celda) {
+        // Lo que queda tras el corte es la celda; la carta debe coincidir.
+        var rc = celda.getBoundingClientRect();
+        var rk = celda.querySelector(".carta").getBoundingClientRect();
+        [rc, rk].forEach(function (r) {
+          medidas.ancho[0] = Math.min(medidas.ancho[0], r.width / MM);
+          medidas.ancho[1] = Math.max(medidas.ancho[1], r.width / MM);
+          medidas.alto[0] = Math.min(medidas.alto[0], r.height / MM);
+          medidas.alto[1] = Math.max(medidas.alto[1], r.height / MM);
+        });
+        izq = Math.min(izq, rc.left); der = Math.max(der, rc.right);
+        arr = Math.min(arr, rc.top); aba = Math.max(aba, rc.bottom);
+        cartas++;
+      });
+      if (h.querySelectorAll(".celda").length === porHoja) {
+        var dx = Math.abs((izq - rh.left) - (rh.right - der)) / MM;
+        var dy = Math.abs((arr - rh.top) - (rh.bottom - aba)) / MM;
+        centrado = Math.max(centrado, dx, dy);
+      }
+    });
+    var hoja1 = document.querySelector(".hoja").getBoundingClientRect();
+    Impresion.informe({
+      paginas: document.querySelectorAll(".hoja").length,
+      cartas: cartas,
+      fuentes: cargadas,
+      hojaMm: [hoja1.width / MM, hoja1.height / MM],
+      cartaAnchoMm: medidas.ancho,
+      cartaAltoMm: medidas.alto,
+      descentradoMm: centrado,
+      margenesMm: [mx, my]
+    });
+    document.documentElement.dataset.listo = "si";
+  });
+})();
+</script>
+</body>
+</html>

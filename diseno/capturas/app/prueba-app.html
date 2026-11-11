@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Prueba del juego</title>
+<style>
+  body { margin: 16px; font: 14px/1.4 ui-monospace, Menlo, monospace; background: #fff; color: #111; }
+  iframe { width: 390px; height: 844px; border: 1px solid #ccc; }
+  .mal { color: #b00; font-weight: bold; }
+</style>
+</head>
+<body>
+<!--
+  Página de prueba: maneja el juego de verdad (clics, teclas, gestos) dentro
+  de un iframe y escribe los resultados en #resultado. Corre cuatro veces:
+  index.html y salida/juego.html, con localStorage normal y bloqueado.
+  Necesita un servidor local en la raíz del repositorio:
+    python3 -m http.server 8765
+  y luego abrir http://127.0.0.1:8765/diseno/capturas/app/prueba-app.html
+  (o con Chrome sin ventana y --dump-dom). Quita los <link> de Google Fonts
+  para no esperar a la red: aquí no se prueba la letra.
+-->
+<pre id="resultado">corriendo…</pre>
+<iframe id="marco" title="Juego en prueba"></iframe>
+<script>
+(async function () {
+  var salida = [];
+  var fallas = 0;
+  var marco = document.getElementById("marco");
+  var fuentes = {};
+
+  function esperar(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+
+  function ok(nombre, cond, detalle) {
+    if (!cond) fallas++;
+    salida.push((cond ? "ok    " : "FALLA ") + nombre + (cond || !detalle ? "" : "  → " + detalle));
+  }
+
+  async function texto(ruta) {
+    if (!fuentes[ruta]) fuentes[ruta] = await (await fetch(ruta)).text();
+    return fuentes[ruta];
+  }
+
+  async function cargar(cfg, limpiar) {
+    var previo = "<script>window.__errores=[];" +
+      "addEventListener('error',function(e){__errores.push(String(e.message))});" +
+      "addEventListener('unhandledrejection',function(e){__errores.push('promesa: '+String(e.reason))});" +
+      (cfg.bloqueo
+        ? "Object.defineProperty(window,'localStorage',{configurable:true,get:function(){throw new Error('bloqueado');}});"
+        : (limpiar ? "try{localStorage.clear()}catch(e){}" : "")) +
+      "<\/script>";
+    var t = (await texto(cfg.fuente === "juego" ? "/salida/juego.html" : "/index.html"))
+      .replace(/<link[^>]*fonts\.(googleapis|gstatic)\.com[^>]*>/gi, "");
+    var doc = cfg.fuente === "juego"
+      ? "<!doctype html><html lang=\"es\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">" +
+        previo + "</head><body>" + t + "</body></html>"
+      : t.replace(/<head>/i, "<head><base href=\"/\">" + previo);
+    await new Promise(function (r) { marco.onload = r; marco.srcdoc = doc; });
+    await esperar(150);
+    return { v: marco.contentWindow, d: marco.contentDocument };
+  }
+
+  async function suite(cfg) {
+    salida.push("");
+    salida.push("== " + (cfg.fuente === "juego" ? "salida/juego.html" : "index.html") +
+      (cfg.bloqueo ? " · localStorage bloqueado" : " · localStorage normal") + " ==");
+    var r = await cargar(cfg, true);
+    var v = r.v, d = r.d;
+    var $ = function (id) { return d.getElementById(id); };
+    var cuenta = function () { return $("cuenta").textContent; };
+    var vista = function () { return $("app").dataset.vista; };
+    var actual = function () {
+      var c = d.querySelector(".naipe:not(.naipe--sale) .carta");
+      return c ? (c.dataset.id || c.dataset.categoria) : null;
+    };
+    var tecla = function (k) {
+      d.body.dispatchEvent(new v.KeyboardEvent("keydown", { key: k, bubbles: true, cancelable: true }));
+    };
+    var puntero = function (tipo, x, y) {
+      var rect = $("hueco").getBoundingClientRect();
+      var blanco = d.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2);
+      blanco.dispatchEvent(new v.PointerEvent(tipo, {
+        pointerId: 7, pointerType: "touch", isPrimary: true, button: 0, bubbles: true, cancelable: true,
+        clientX: rect.left + rect.width / 2 + x, clientY: rect.top + rect.height / 2 + y
+      }));
+    };
+    var tocar = function () { puntero("pointerdown", 0, 0); puntero("pointerup", 0, 0); };
+    var deslizar = function (dx) {
+      puntero("pointerdown", 0, 0);
+      for (var i = 1; i <= 5; i++) puntero("pointermove", dx * i / 5, 2);
+      puntero("pointerup", dx, 2);
+    };
+
+    ok("arranca con el mazo boca abajo", vista() === "inicio" && !!d.querySelector(".naipe .carta--reverso") && cuenta() === "110 cartas", cuenta());
+    ok("en el inicio no se ve «Anterior»", v.getComputedStyle($("anterior")).display === "none");
+    ok("el botón invita a sacar la primera carta", $("siguiente-texto").textContent === "Sacar la primera carta");
+
+    $("siguiente").click();
+    await esperar(120);
+    var id1 = actual();
+    ok("el botón saca la primera carta", vista() === "carta" && cuenta() === "1 de 110" && /^[A-Z]{3}-\d\d$/.test(id1), cuenta() + " " + id1);
+    ok("la carta se anuncia (aria-live)", /^Carta 1 de 110\. .+ ¿Qué prefieres: .+ o .+\?$/.test($("anuncio").textContent), $("anuncio").textContent);
+    ok("en la primera carta «Anterior» está desactivado", $("anterior").getAttribute("aria-disabled") === "true");
+
+    tecla("ArrowRight");
+    var id2 = actual();
+    ok("flecha derecha: siguiente", cuenta() === "2 de 110" && id2 !== id1);
+    tecla(" ");
+    var id3 = actual();
+    ok("barra espaciadora: siguiente", cuenta() === "3 de 110" && id3 !== id2);
+    tecla("ArrowLeft");
+    ok("flecha izquierda: regresa a la anterior", cuenta() === "2 de 110" && actual() === id2);
+    tocar();
+    ok("tocar la carta: vuelve a la que ya había salido", cuenta() === "3 de 110" && actual() === id3);
+    deslizar(-160);
+    var id4 = actual();
+    ok("deslizar a la izquierda: siguiente", cuenta() === "4 de 110" && id4 !== id3, cuenta());
+    deslizar(160);
+    ok("deslizar a la derecha: anterior", cuenta() === "3 de 110" && actual() === id3, cuenta());
+    deslizar(30);
+    ok("un arrastre corto no cambia de carta", cuenta() === "3 de 110" && actual() === id3);
+    $("anterior").click(); $("anterior").click(); $("anterior").click();
+    ok("«Anterior» llega hasta la primera y ahí se queda", cuenta() === "1 de 110" && actual() === id1);
+    // Chrome sin ventana no avanza el reloj de las animaciones dentro del
+    // iframe: se terminan a mano para probar la limpieza al acabar.
+    if (v.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      ok("con movimiento reducido no hay transición: una sola carta", d.querySelectorAll("#hueco .naipe").length === 1);
+    } else {
+      ok("durante la transición hay dos cartas (la que sale y la que entra)", d.querySelectorAll("#hueco .naipe").length === 2);
+    }
+    d.getAnimations().forEach(function (a) { a.finish(); });
+    await esperar(450);
+    ok("tras las transiciones queda una sola carta en la mesa", d.querySelectorAll("#hueco .naipe").length === 1,
+      Array.prototype.map.call(d.querySelectorAll("#hueco .naipe"), function (n) { return n.className + "(" + (n.firstElementChild && (n.firstElementChild.dataset.id || n.firstElementChild.className)) + ")[" + n.getAnimations().map(function (a) { return a.playState + ":" + a.currentTime; }).join(",") + "]"; }).join(" "));
+
+    // Hoja «Mazo»: categorías
+    $("abrir-mazo").click();
+    ok("se abre la hoja «Mazo»", $("hoja-mazo").open);
+    var casillas = Array.prototype.slice.call(d.querySelectorAll("#lista-categorias input"));
+    ok("seis categorías con id estable", casillas.length === 6 && casillas.every(function (c) { return /^cat-[a-z]+$/.test(c.id); }));
+    casillas.forEach(function (c) { c.click(); });
+    await esperar(80);
+    var encendidas = casillas.filter(function (c) { return c.checked; });
+    ok("no se pueden apagar todas: queda una", encendidas.length === 1 && encendidas[0].id === "cat-asco");
+    ok("se explica por qué", /al menos una/i.test($("nota-categorias").textContent), $("nota-categorias").textContent);
+    var enMesa = d.querySelector(".naipe:not(.naipe--sale) .carta").dataset.categoria;
+    ok("la carta en la mesa es de la categoría que queda", enMesa === "asco", enMesa);
+    ok("el contador cuenta solo lo que está en juego", / de 10$/.test(cuenta()), cuenta());
+    casillas.forEach(function (c) { if (!c.checked) c.click(); });
+    ok("al encenderlas de nuevo vuelven las 110", / de 110$/.test(cuenta()), cuenta());
+
+    // Modo prueba
+    ok("modo prueba apagado por omisión", !$("modo-prueba").checked && $("pie").hidden && $("chip-prueba").hidden);
+    $("modo-prueba").click();
+    ok("al encenderlo aparecen los veredictos", !$("pie").hidden && !$("veredictos").hidden && !$("chip-prueba").hidden);
+    $("cerrar-mazo").click();
+    await esperar(50);
+    ok("«Cerrar» cierra la hoja", !$("hoja-mazo").open);
+    var marcada = actual();
+    $("veredicto-facil").click();
+    ok("marcar «Muy fácil»", $("veredicto-facil").getAttribute("aria-pressed") === "true" && $("marcadas").textContent === "1");
+    $("veredicto-fuera").click();
+    ok("cambiar la marca a «Fuera»", $("veredicto-fuera").getAttribute("aria-pressed") === "true" &&
+      $("veredicto-facil").getAttribute("aria-pressed") === "false" && $("marcadas").textContent === "1");
+    tecla("ArrowRight");
+    ok("la siguiente carta llega sin marca", d.querySelectorAll("#veredictos [aria-pressed='true']").length === 0);
+    $("veredicto-queda").click();
+    tecla("ArrowLeft");
+    ok("al regresar se ve la marca guardada", actual() === marcada && $("veredicto-fuera").getAttribute("aria-pressed") === "true");
+    $("chip-prueba").click();
+    ok("se abren los resultados", $("hoja-resultados").open);
+    var res = $("lista-resultados").textContent;
+    ok("los resultados agrupan por veredicto con id", res.indexOf(marcada) !== -1 && /Fuera \(1\)/.test(res) && /Se queda \(1\)/.test(res), res.slice(0, 120));
+    $("copiar-resultados").click();
+    await esperar(1600);
+    var copiado = $("estado-copia-resultados").textContent === "Copiado.";
+    var caja = !$("copia-resultados").hidden && $("copia-resultados").value.indexOf(marcada + " | ") !== -1;
+    ok("«Copiar resultados» copia o muestra el texto seleccionable", copiado || caja, copiado ? "" : $("estado-copia-resultados").textContent);
+    salida.push("      (portapapeles: " + (copiado ? "copió" : "cayó al cuadro de texto") + ")");
+    $("borrar-marcas").click();
+    ok("«Borrar marcas» pide confirmación en la página", !$("confirmar-marcas").hidden && $("borrar-marcas").hidden);
+    $("no-borrar-marcas").click();
+    ok("«No» no borra", $("marcadas").textContent === "2");
+    $("borrar-marcas").click();
+    $("si-borrar-marcas").click();
+    ok("«Sí, borrar» borra todas", $("marcadas").textContent === "0" && !$("sin-marcas").hidden);
+    $("cerrar-resultados").click();
+    $("abrir-mazo").click();
+    $("modo-prueba").click();
+    $("cerrar-mazo").click();
+    ok("con el modo apagado no queda rastro", $("pie").hidden && $("chip-prueba").hidden);
+
+    // Tus dilemas
+    $("abrir-dilemas").click();
+    var escribir = function (id, valor) {
+      $(id).value = valor;
+      $(id).dispatchEvent(new v.Event("input", { bubbles: true }));
+    };
+    var enviar = function () { $("form-dilema").requestSubmit ? $("form-dilema").requestSubmit() : $("guardar-dilema").click(); };
+    escribir("dilema-a", "");
+    escribir("dilema-b", "algo");
+    enviar();
+    ok("no guarda con una opción vacía", /dos opciones/.test($("error-dilema").textContent) && d.querySelectorAll("#lista-dilemas li").length === 0);
+    escribir("dilema-a", "mar");
+    escribir("dilema-b", "Mar ");
+    enviar();
+    ok("no guarda opciones iguales", /iguales/.test($("error-dilema").textContent));
+    ok("los campos limitan a 60 caracteres", $("dilema-a").maxLength === 60 && $("dilema-b").maxLength === 60);
+    escribir("dilema-a", "dormir en una tienda de campaña");
+    escribir("dilema-b", "dormir en el coche");
+    ok("vista previa en vivo con Carta.propia", !!$("vista-dilema").querySelector(".carta--propia") &&
+      $("vista-dilema").textContent.indexOf("dormir en el coche") !== -1);
+    ok("el contador de caracteres sigue el texto", $("contador-b").textContent === "18/60", $("contador-b").textContent);
+    enviar();
+    ok("guarda el dilema y entra al mazo", d.querySelectorAll("#lista-dilemas li").length === 1 && / de 111$/.test(cuenta()), cuenta());
+    d.querySelector("#lista-dilemas [data-accion='editar']").click();
+    ok("«Editar» carga el dilema", $("dilema-a").value === "dormir en una tienda de campaña" && !$("cancelar-edicion").hidden);
+    escribir("dilema-b", "dormir en la cajuela");
+    enviar();
+    ok("guarda los cambios sin duplicar", d.querySelectorAll("#lista-dilemas li").length === 1 &&
+      $("lista-dilemas").textContent.indexOf("dormir en la cajuela") !== -1);
+    escribir("dilema-a", "tacos");
+    escribir("dilema-b", "tortas");
+    enviar();
+    $("copiar-dilemas").click();
+    await esperar(1600);
+    var esperado = "dormir en una tienda de campaña | dormir en la cajuela\ntacos | tortas";
+    var copio = $("estado-copia-dilemas").textContent === "Copiado.";
+    ok("«Copiar mis dilemas» copia o muestra el texto", copio || (!$("copia-dilemas").hidden && $("copia-dilemas").value === esperado),
+      JSON.stringify($("copia-dilemas").value));
+    d.querySelector("#lista-dilemas [data-accion='borrar']").click();
+    var fila = d.querySelector("#lista-dilemas li");
+    ok("«Borrar» pide confirmación en la página", !fila.querySelector(".confirmar").hidden);
+    fila.querySelector("[data-accion='si-borrar']").click();
+    ok("borra solo ese", d.querySelectorAll("#lista-dilemas li").length === 1 && $("lista-dilemas").textContent.indexOf("tacos") !== -1 &&
+      / de 111$/.test(cuenta()), cuenta());
+    $("cerrar-dilemas").click();
+
+    // Mazo con propios apagados
+    $("abrir-mazo").click();
+    $("incluir-propios").click();
+    ok("apagar los dilemas propios los saca del conteo", / de 110$/.test(cuenta()), cuenta());
+    $("incluir-propios").click();
+    $("cerrar-mazo").click();
+
+    // Reglas
+    $("abrir-reglas").click();
+    ok("«Cómo se juega» muestra Carta.reglas()", !!$("reglas-carta").querySelector(".carta--reglas") && $("hoja-reglas").open);
+    $("cerrar-reglas").click();
+
+    // Jugar hasta el final
+    var vueltas = 0;
+    while (vista() !== "fin" && vueltas++ < 300) v.AoD.siguiente();
+    var e = v.AoD.estado();
+    var unicas = {};
+    e.partida.vistas.forEach(function (id) { unicas[id] = true; });
+    ok("se acaba el mazo tras 111 cartas sin repetir", vista() === "fin" && e.partida.vistas.length === 111 && Object.keys(unicas).length === 111,
+      e.partida.vistas.length + " / " + Object.keys(unicas).length);
+    ok("aviso amable al acabarse", /Se acabó el mazo/.test(d.querySelector(".fin").textContent) && $("siguiente-texto").textContent === "Barajar de nuevo");
+    $("anterior").click();
+    ok("desde el fin se puede regresar a la última", vista() === "carta" && cuenta() === "111 de 111", cuenta());
+    tecla("ArrowRight");
+    tocar();
+    ok("tocar el aviso de fin no baraja por accidente", vista() === "fin");
+    $("siguiente").click();
+    ok("«Barajar de nuevo» deja el mazo boca abajo", vista() === "inicio" && cuenta() === "111 cartas", cuenta());
+
+    // Barajar desde la hoja
+    tecla("ArrowRight"); tecla("ArrowRight");
+    $("abrir-mazo").click();
+    $("barajar").click();
+    ok("«Barajar de nuevo» en la hoja reinicia y la cierra", vista() === "inicio" && !$("hoja-mazo").open);
+
+    // Sin desplazamiento horizontal
+    await esperar(400);
+    ok("sin desplazamiento horizontal", d.documentElement.scrollWidth <= d.documentElement.clientWidth,
+      d.documentElement.scrollWidth + " > " + d.documentElement.clientWidth);
+
+    // Lo guardado
+    tecla("ArrowRight"); tecla("ArrowRight"); tecla("ArrowRight");
+    var antes = actual();
+    r = await cargar(cfg, false);
+    v = r.v; d = r.d;
+    if (cfg.bloqueo) {
+      ok("sin localStorage: arranca de cero y funciona", vista() === "inicio" && cuenta() === "110 cartas", cuenta());
+      d.getElementById("siguiente").click();
+      ok("sin localStorage: se juega igual", vista() === "carta" && cuenta() === "1 de 110");
+    } else {
+      ok("al recargar sigue en la misma carta", actual() === antes && cuenta() === "3 de 111", cuenta() + " " + actual() + " " + antes);
+      ok("al recargar conserva los dilemas", v.AoD.estado().propios.length === 1);
+    }
+    ok("sin errores de JavaScript", v.__errores.length === 0, v.__errores.join(" | "));
+  }
+
+  try {
+    await suite({ fuente: "index", bloqueo: false });
+    await suite({ fuente: "index", bloqueo: true });
+    await suite({ fuente: "juego", bloqueo: false });
+    await suite({ fuente: "juego", bloqueo: true });
+  } catch (e) {
+    fallas++;
+    salida.push("FALLA excepción: " + e.message + "\n" + e.stack);
+  }
+  salida.unshift(fallas ? "RESULTADO: " + fallas + " fallas" : "RESULTADO: todo bien");
+  var pre = document.getElementById("resultado");
+  pre.textContent = salida.join("\n");
+  if (fallas) pre.className = "mal";
+  document.body.dataset.listo = "si";
+})();
+</script>
+</body>
+</html>

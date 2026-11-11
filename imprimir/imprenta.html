@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Archivo para imprenta</title>
+<!--
+  Una carta por página, con sangrado: página de 2.75 × 3.75 in (69.85 × 95.25 mm)
+  y la carta de 2.5 × 3.5 in (63.5 × 88.9 mm) centrada. Sin marcas de corte.
+
+  ?caras=frentes      portada, reglas, preguntas y cartas en blanco (por omisión)
+  ?caras=reverso      una sola página con el reverso
+  ?caras=intercalado  reverso, frente, reverso, frente… (DriveThruCards)
+  ?carta=COM-01       una sola carta (también portada, reglas, reverso, blanco);
+                      es la que se captura en PNG
+  ?pagina=2.75x3.75   tamaño de página en pulgadas (lo usa scripts/exportar.mjs)
+  ?revisar=si         agrega un informe con fuentes y zona segura
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=Covered+By+Your+Grace&family=Mansalva&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/tokens.css">
+<link rel="stylesheet" href="../css/carta.css">
+<style>
+html, body { margin: 0; padding: 0; }
+html {
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+/* Todo en pulgadas: 1 in = 96 px CSS, así ninguna medida cae entre píxeles. */
+.pagina {
+  position: relative;
+  width: 2.75in;
+  height: 3.75in;
+  overflow: hidden;
+}
+/* break-after en la última página agrega una hoja en blanco al final. */
+.pagina + .pagina { break-before: page; }
+
+.pagina__carta {
+  position: absolute;
+  left: .125in;
+  top: .125in;
+  width: 2.5in;
+}
+
+.aviso {
+  margin: 24px;
+  font: 16px/1.4 var(--imprenta);
+  color: #a00;
+}
+
+@media screen {
+  html:not(.una) body {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    padding: 20px;
+    background: #7d828c;
+  }
+  html.una, html.una body { overflow: hidden; }
+}
+</style>
+</head>
+<body>
+<script src="../js/cartas.js"></script>
+<script src="../js/carta.js"></script>
+<script src="comun.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  var p = Impresion.parametros();
+  var caras = p.get("caras") || "frentes";
+  var una = p.get("carta");
+
+  Impresion.tamanoPagina("2.75in", "3.75in");
+
+  function pagina(clave) {
+    var carta = Impresion.crear(clave);
+    if (!carta) throw new Error("No existe la carta «" + clave + "».");
+    carta.classList.add("carta--sangrado");
+    var hoja = document.createElement("section");
+    hoja.className = "pagina";
+    hoja.dataset.clave = clave;
+    var marco = document.createElement("div");
+    marco.className = "pagina__carta";
+    marco.appendChild(carta);
+    hoja.appendChild(marco);
+    document.body.appendChild(hoja);
+  }
+
+  var claves;
+  if (una) {
+    document.documentElement.classList.add("una");
+    claves = [una];
+  } else if (caras === "frentes") {
+    claves = Impresion.mazo().map(function (c) { return c.clave; });
+  } else if (caras === "reverso") {
+    claves = ["reverso"];
+  } else if (caras === "intercalado") {
+    claves = [];
+    Impresion.mazo().forEach(function (c) { claves.push("reverso", c.clave); });
+  } else {
+    claves = [];
+  }
+
+  try {
+    if (!claves.length) throw new Error("Valor desconocido: caras=" + caras + ". Usa frentes, reverso o intercalado.");
+    claves.forEach(pagina);
+  } catch (e) {
+    document.body.innerHTML = "<p class=\"aviso\"></p>";
+    document.body.firstChild.textContent = e.message;
+    document.documentElement.dataset.error = e.message;
+    return;
+  }
+
+  Impresion.prepararParaPdf().then(Impresion.fuentes).then(function (cargadas) {
+    var peor = { texto: Infinity, trazos: Infinity };
+    document.querySelectorAll(".pagina").forEach(function (hoja) {
+      var z = Impresion.zonaSegura(hoja.querySelector(".carta"));
+      if (z.texto < peor.texto) { peor.texto = z.texto; peor.cartaTexto = hoja.dataset.clave; peor.piezaTexto = z.piezaTexto; }
+      if (z.trazos < peor.trazos) { peor.trazos = z.trazos; peor.cartaTrazo = hoja.dataset.clave; peor.piezaTrazo = z.piezaTrazo; }
+    });
+    var primera = document.querySelector(".pagina").getBoundingClientRect();
+    var carta = document.querySelector(".pagina .carta").getBoundingClientRect();
+    Impresion.informe({
+      paginas: document.querySelectorAll(".pagina").length,
+      fuentes: cargadas,
+      paginaMm: [primera.width / Impresion.MM, primera.height / Impresion.MM],
+      cartaMm: [carta.width / Impresion.MM, carta.height / Impresion.MM],
+      sangradoMm: [(carta.left - primera.left) / Impresion.MM, (carta.top - primera.top) / Impresion.MM],
+      zona: peor
+    });
+    document.documentElement.dataset.listo = "si";
+  });
+})();
+</script>
+</body>
+</html>

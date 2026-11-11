@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="es" data-theme="light">
+<head>
+<meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=Covered+By+Your+Grace&family=Mansalva&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../../css/tokens.css">
+<link rel="stylesheet" href="../../../css/carta.css">
+<link rel="stylesheet" href="base.css">
+<title>Carta de ejemplo</title>
+<style>
+.marco { width: 600px; padding: 48px 50px; }
+</style>
+</head>
+<body>
+<div class="marco" id="marco"></div>
+<script src="../../../js/cartas.js"></script>
+<script src="../../../js/carta.js"></script>
+<script>
+var fam = window.MAZO.categorias.filter(function (c) { return c.id === "familia"; })[0];
+document.getElementById("marco").appendChild(Carta.frente(fam.cartas.filter(function (k) { return k.id === "FAM-02"; })[0], fam));
+</script>
+</body>
+</html>

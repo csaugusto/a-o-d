@@ -1,0 +1,8 @@
+.DS_Store
+
+# Archivos generados pesados; se regeneran con node scripts/exportar.mjs
+salida/*.pdf
+salida/png/
+
+# Capturas de trabajo de los agentes
+diseno/capturas/**/*.png

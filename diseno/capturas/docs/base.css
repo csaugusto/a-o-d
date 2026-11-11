@@ -1,0 +1,11 @@
+/* Páginas temporales para las imágenes de docs/img/. Usan el sistema real. */
+* { box-sizing: border-box; }
+html { background: var(--mesa); }
+body {
+  margin: 0;
+  color: var(--mesa-texto);
+  font-family: var(--imprenta);
+  background: radial-gradient(circle at 1px 1px, var(--mesa-linea) 1px, transparent 1.7px) 0 0 / 22px 22px, var(--mesa);
+  -webkit-font-smoothing: antialiased;
+}
+.carta { box-shadow: 0 1px 1px rgba(23, 30, 90, .1), 0 16px 28px -14px var(--mesa-sombra); }

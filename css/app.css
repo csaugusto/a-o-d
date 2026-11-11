@@ -1,0 +1,1014 @@
+/* =====================================================================
+   A o D · Juego digital
+   La pantalla es la carta. Todo lo demás es mesa: tinta azul pluma sobre
+   mantel, letra a mano para lo que se dice y la imprenta del pie de las
+   cartas para lo que se lee de reojo.
+   Requiere css/tokens.css y css/carta.css.
+   ===================================================================== */
+
+:root {
+  /* La hoja (paneles) va un tono sobre la mesa; cambia con el tema. */
+  --hoja: var(--servilleta);
+  --hoja-sombra: rgba(23, 30, 90, .28);
+  --telon: rgba(20, 24, 56, .42);
+  --borde-mano: 15px 19px 14px 20px / 19px 14px 20px 15px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --hoja: #1D2252;
+    --hoja-sombra: rgba(0, 0, 0, .55);
+    --telon: rgba(4, 6, 20, .62);
+  }
+}
+
+:root[data-theme="dark"] {
+  --hoja: #1D2252;
+  --hoja-sombra: rgba(0, 0, 0, .55);
+  --telon: rgba(4, 6, 20, .62);
+}
+
+html,
+body {
+  height: 100%;
+}
+
+html {
+  background-color: var(--mesa);
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  overflow-x: hidden;
+  color: var(--mesa-texto);
+  font-family: var(--imprenta);
+  font-size: 16px;
+  line-height: 1.4;
+  background-color: var(--mesa);
+  /* Mantel de cuaderno: la misma retícula de puntos del muestrario. */
+  background-image: radial-gradient(circle at 1px 1px, var(--mesa-linea) 1px, transparent 1.6px);
+  background-size: 22px 22px;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.app,
+.app *,
+.hoja,
+.hoja * {
+  box-sizing: border-box;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+.oculto {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+:focus-visible {
+  outline: 3px solid var(--mesa-texto);
+  outline-offset: 3px;
+}
+
+/* ---------- Armazón: cabeza, mesa, fila de prueba, mando, menú ---------- */
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 460px;
+  padding-top: max(6px, env(safe-area-inset-top, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-bottom: max(10px, env(safe-area-inset-bottom, 0px));
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+}
+
+.cabeza,
+.pie,
+.mando,
+.menu {
+  flex: none;
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.cabeza {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+}
+
+.cabeza__logo {
+  width: 62px;
+}
+
+.cabeza__logo .logo {
+  color: var(--mesa-texto);
+}
+
+.cabeza__lado {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.cuenta {
+  margin: 0;
+  font-family: var(--mano-b);
+  font-size: 23px;
+  line-height: 1;
+  color: var(--mesa-tenue);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.chip {
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1.5px dashed var(--mesa-linea);
+  border-radius: 999px;
+  background: none;
+  color: inherit;
+  font-family: var(--imprenta);
+  font-stretch: 70%;
+  font-weight: 650;
+  font-size: 12px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+/* ---------- La mesa y la carta ---------- */
+
+.mesa {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.escenario {
+  flex: 1 1 auto;
+  min-height: 200px;
+  display: grid;
+  place-items: center;
+  container-type: size;
+  touch-action: pan-y pinch-zoom;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* La carta lo más grande posible: ancho = mínimo entre el ancho disponible y
+   el alto disponible × 5/7. Se guarda un margen para el montón girado y la
+   sombra, que asoman más allá de la carta. */
+.hueco {
+  position: relative;
+  width: min(100%, 300px);
+  width: min(calc(100cqw - 14px), calc((100cqh - 44px) * 5 / 7));
+  aspect-ratio: 5 / 7;
+  cursor: pointer;
+}
+
+.hueco[data-estado="fin"] {
+  cursor: default;
+}
+
+.naipe {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  backface-visibility: hidden;
+}
+
+.naipe--sale {
+  z-index: 2;
+  pointer-events: none;
+}
+
+.naipe .carta {
+  box-shadow: 0 1px 1px rgba(23, 30, 90, .12), 0 18px 32px -16px var(--mesa-sombra);
+}
+
+/* El resto del mazo, boca abajo, asoma debajo de la carta. */
+.monton {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.monton i {
+  display: none;
+  position: absolute;
+  inset: 0;
+  border-radius: 5% / 3.5714%;
+  background: var(--tinta);
+  box-shadow: inset 0 0 0 1px rgba(253, 253, 250, .1), 0 12px 26px -16px var(--mesa-sombra);
+}
+
+.monton i:nth-child(1) { transform: translate(1.8%, 1.2%) rotate(2.4deg); }
+.monton i:nth-child(2) { transform: translate(-1.4%, 1.8%) rotate(-1.9deg); }
+
+.monton[data-capas="1"] i:nth-child(1),
+.monton[data-capas="2"] i {
+  display: block;
+}
+
+/* Se acabó el mazo: queda el hueco donde estaba, punteado. */
+.hueco[data-estado="fin"]::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 2px dashed var(--mesa-linea);
+  border-radius: 5% / 3.5714%;
+}
+
+.naipe--fin {
+  display: grid;
+  place-items: center;
+  container-type: inline-size;
+}
+
+.fin {
+  padding: 0 12cqw;
+  text-align: center;
+}
+
+.fin__titulo {
+  margin: 0;
+  text-wrap: balance;
+  font-family: var(--mano-a);
+  font-size: 10.5cqw;
+  line-height: 1.05;
+  -webkit-text-stroke: .012em currentColor;
+}
+
+.fin__texto {
+  margin: 4cqw 0 0;
+  text-wrap: balance;
+  font-family: var(--mano-b);
+  font-size: 8cqw;
+  line-height: 1.1;
+  color: var(--mesa-tenue);
+}
+
+/* ---------- Botones ---------- */
+
+.boton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 48px;
+  min-width: 44px;
+  padding: 0 18px;
+  border: 2px solid var(--mesa-linea);
+  border-radius: var(--borde-mano);
+  background: none;
+  color: inherit;
+  font-family: var(--imprenta);
+  font-stretch: 72%;
+  font-weight: 650;
+  font-size: 13.5px;
+  line-height: 1.1;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+  text-align: center;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: background-color .15s, border-color .15s, transform .1s;
+}
+
+.boton:hover {
+  border-color: currentColor;
+}
+
+.boton:active {
+  transform: translateY(1px) scale(.985);
+}
+
+.boton--principal {
+  border-color: transparent;
+  background: var(--mesa-texto);
+  color: var(--mesa);
+  font-family: var(--mano-a);
+  font-stretch: normal;
+  font-weight: 400;
+  font-size: 21px;
+  letter-spacing: 0;
+  text-transform: none;
+  -webkit-text-stroke: .012em currentColor;
+}
+
+.boton--principal:hover {
+  border-color: transparent;
+}
+
+.boton--compacto {
+  font-size: 19px;
+}
+
+.boton--chico {
+  min-height: 44px;
+  padding: 0 14px;
+  font-size: 12.5px;
+}
+
+.boton--fuerte {
+  border-color: currentColor;
+}
+
+.boton[aria-disabled="true"] {
+  opacity: .38;
+  cursor: default;
+}
+
+.boton[aria-disabled="true"]:hover {
+  border-color: var(--mesa-linea);
+}
+
+.boton[aria-disabled="true"]:active {
+  transform: none;
+}
+
+.icono {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  overflow: visible;
+}
+
+.icono--trazo {
+  stroke-width: 7.5;
+}
+
+.enlace {
+  display: inline;
+  min-height: 44px;
+  padding: 10px 2px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-weight: 650;
+  text-decoration: underline;
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+/* ---------- Mando: anterior y siguiente, al alcance del pulgar ---------- */
+
+.mando {
+  display: flex;
+  gap: 10px;
+  padding-top: 10px;
+}
+
+.boton--anterior {
+  flex: none;
+}
+
+.mando .boton--principal {
+  flex: 1 1 auto;
+  min-height: 56px;
+  padding: 0 14px;
+  white-space: nowrap;
+}
+
+/* En los teléfonos más angostos la flecha estorba: el texto ya lo dice. */
+@media (max-width: 379px) {
+  .mando .icono--sigue {
+    display: none;
+  }
+}
+
+.app[data-vista="inicio"] .boton--anterior {
+  display: none;
+}
+
+.icono--baraja,
+.boton--barajar .icono--sigue {
+  display: none;
+}
+
+.boton--barajar .icono--baraja {
+  display: block;
+}
+
+.menu {
+  display: flex;
+  justify-content: space-around;
+  gap: 2px;
+  padding-top: 6px;
+}
+
+.menu__boton {
+  flex: 0 1 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-width: 0;
+  min-height: 48px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 12px;
+  background: none;
+  color: inherit;
+  font-family: var(--imprenta);
+  font-stretch: 70%;
+  font-weight: 650;
+  font-size: 12.5px;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.menu__boton:hover span {
+  text-decoration: underline;
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 4px;
+}
+
+.menu__boton .icono {
+  width: 20px;
+  height: 20px;
+}
+
+/* ---------- Modo prueba: tres veredictos bajo la carta ---------- */
+
+.pie {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 56px;
+  padding-top: 8px;
+}
+
+.veredictos {
+  display: flex;
+  gap: 6px;
+  width: 100%;
+}
+
+.veredicto-boton {
+  flex: 1 1 0;
+  min-height: 48px;
+  min-width: 0;
+  padding: 0 4px;
+  border: 1.5px dashed var(--mesa-linea);
+  border-radius: var(--borde-mano);
+  background: none;
+  color: inherit;
+  font-family: var(--mano-b);
+  font-size: 21px;
+  line-height: 1;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.veredicto-boton > span {
+  position: relative;
+  display: inline-block;
+  padding: 4px 6px;
+}
+
+/* La elegida se encierra a pluma, como «¿POR QUÉ?» en las reglas. */
+.veredicto-boton .trazo {
+  position: absolute;
+  inset: -3px -8px -1px;
+  width: calc(100% + 16px);
+  height: calc(100% + 4px);
+  stroke-width: 2.4;
+  opacity: 0;
+}
+
+.veredicto-boton[aria-pressed="true"] {
+  border-style: solid;
+  border-color: currentColor;
+}
+
+.veredicto-boton[aria-pressed="true"] .trazo {
+  opacity: 1;
+}
+
+.fin-prueba {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+/* ---------- Hojas (Mazo, Tus dilemas, Cómo se juega, Resultados) ---------- */
+
+.hoja {
+  width: 100%;
+  max-width: min(520px, 100%);
+  max-height: calc(100% - max(20px, env(safe-area-inset-top, 0px)));
+  margin: auto auto 0;
+  padding: 0;
+  border: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: none;
+  color: var(--mesa-texto);
+  font-family: var(--imprenta);
+}
+
+.hoja--ancha {
+  max-width: min(640px, 100%);
+}
+
+.hoja::backdrop {
+  background: var(--telon);
+}
+
+.hoja[open] {
+  animation: hoja-sube .26s cubic-bezier(.2, .8, .2, 1);
+}
+
+@keyframes hoja-sube {
+  from { transform: translateY(24px); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+
+.hoja__papel {
+  min-height: 100%;
+  padding-top: 0;
+  padding-right: max(20px, env(safe-area-inset-right, 0px));
+  padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+  padding-left: max(20px, env(safe-area-inset-left, 0px));
+  border-radius: 22px 22px 0 0;
+  background-color: var(--hoja);
+  box-shadow: 0 -10px 40px -18px var(--hoja-sombra);
+}
+
+@media (min-width: 700px) and (min-height: 560px) {
+  .hoja {
+    margin: auto;
+    max-height: calc(100% - 64px);
+  }
+
+  .hoja__papel {
+    padding-bottom: 28px;
+    border-radius: 22px;
+    box-shadow: 0 24px 60px -24px var(--hoja-sombra);
+  }
+}
+
+.hoja__cabeza {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 0 10px;
+  background-color: var(--hoja);
+}
+
+.hoja__titulo {
+  margin: 0;
+  font-family: var(--mano-a);
+  font-weight: 400;
+  font-size: 30px;
+  line-height: 1.05;
+  -webkit-text-stroke: .012em currentColor;
+}
+
+.hoja__titulo:focus {
+  outline: none;
+}
+
+.grupo {
+  margin: 0;
+  padding: 16px 0 18px;
+  border: 0;
+  border-top: 1.5px dashed var(--mesa-linea);
+  min-width: 0;
+}
+
+.grupo__titulo {
+  float: left;
+  width: 100%;
+  margin: 0 0 8px;
+  padding: 0;
+  font-family: var(--imprenta);
+  font-stretch: 70%;
+  font-weight: 650;
+  font-size: 12.5px;
+  line-height: 1.3;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--mesa-tenue);
+}
+
+.grupo__titulo + * {
+  clear: both;
+}
+
+.nota {
+  margin: 6px 0;
+  font-size: 15px;
+  line-height: 1.4;
+  color: var(--mesa-tenue);
+}
+
+.nota:empty {
+  display: none;
+}
+
+.nota--aviso {
+  color: var(--mesa-texto);
+  font-weight: 600;
+}
+
+.nota--centro {
+  text-align: center;
+}
+
+/* Casillas a pluma: la palomita se dibuja encima de una caja de tinta. */
+.casillas {
+  display: grid;
+  gap: 2px;
+}
+
+.casilla {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  cursor: pointer;
+}
+
+.casilla input {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  margin: 0;
+  border: 2px solid currentColor;
+  border-radius: 5px 7px 5px 6px;
+  background: none;
+  color: inherit;
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+}
+
+.casilla__marca {
+  position: absolute;
+  left: -2px;
+  top: 50%;
+  width: 30px;
+  height: 30px;
+  margin-top: -18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.casilla input:checked ~ .casilla__marca {
+  opacity: 1;
+}
+
+.casilla__papel {
+  flex: none;
+  width: 16px;
+  height: 22px;
+  border-radius: 2px;
+  background: var(--c, var(--servilleta));
+  box-shadow: 0 0 0 1px var(--mesa-linea);
+  transform: rotate(-4deg);
+}
+
+.casilla__papel--propio {
+  --c: var(--servilleta);
+  transform: rotate(3deg);
+}
+
+.casilla__texto {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 16px;
+}
+
+.casilla__cuenta {
+  flex: none;
+  font-family: var(--mano-b);
+  font-size: 20px;
+  line-height: 1;
+  color: var(--mesa-tenue);
+}
+
+.casilla input:not(:checked) ~ .casilla__texto,
+.casilla input:not(:checked) ~ .casilla__papel {
+  opacity: .55;
+}
+
+.casilla--ultima .casilla__texto::after {
+  content: " · la última";
+  color: var(--mesa-tenue);
+  font-size: 13px;
+}
+
+.grupo--prueba .boton {
+  margin-top: 6px;
+}
+
+/* ---------- Tus dilemas ---------- */
+
+.editor {
+  display: grid;
+  gap: 16px;
+  padding: 10px 0 20px;
+}
+
+.editor__vista {
+  width: 150px;
+  justify-self: center;
+  transform: rotate(-1.5deg);
+}
+
+.editor__vista .carta {
+  box-shadow: 0 1px 1px rgba(23, 30, 90, .1), 0 12px 22px -12px var(--mesa-sombra);
+}
+
+.vista--sin-a .carta__opcion--a,
+.vista--sin-b .carta__opcion--b {
+  opacity: .35;
+}
+
+@media (min-width: 540px) {
+  .editor {
+    grid-template-columns: 170px minmax(0, 1fr);
+    align-items: start;
+    gap: 24px;
+  }
+
+  .editor__vista {
+    width: 170px;
+  }
+}
+
+.editor__campos {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.campo {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 4px 8px;
+}
+
+.campo__etiqueta {
+  font-family: var(--mano-b);
+  font-size: 21px;
+  line-height: 1.1;
+}
+
+.campo__contador {
+  grid-row: 1;
+  grid-column: 2;
+  font-size: 12.5px;
+  color: var(--mesa-tenue);
+  font-variant-numeric: tabular-nums;
+}
+
+.campo__entrada {
+  grid-column: 1 / -1;
+  width: 100%;
+  min-height: 48px;
+  padding: 10px 12px;
+  border: 2px solid var(--mesa-linea);
+  border-radius: 10px 12px 9px 13px / 12px 9px 13px 10px;
+  background: transparent;
+  color: inherit;
+  font-family: var(--mano-a);
+  font-size: 19px;
+  line-height: 1.2;
+}
+
+.campo__entrada::placeholder {
+  color: var(--mesa-tenue);
+  opacity: .7;
+}
+
+.campo__entrada:focus {
+  border-color: currentColor;
+}
+
+.acciones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.editor--editando .editor__campos {
+  padding-left: 12px;
+  border-left: 3px solid currentColor;
+}
+
+.guardados {
+  padding-top: 16px;
+  border-top: 1.5px dashed var(--mesa-linea);
+}
+
+.guardados .grupo__titulo {
+  float: none;
+}
+
+.dilemas {
+  margin: 0 0 12px;
+  padding: 0;
+  list-style: none;
+}
+
+.dilema {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--mesa-linea);
+}
+
+.dilema__texto {
+  flex: 1 1 220px;
+  min-width: 0;
+  margin: 0;
+  font-family: var(--mano-a);
+  font-size: 18px;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.dilema__o {
+  font-family: var(--imprenta);
+  font-size: 1rem;
+  font-style: italic;
+  color: var(--mesa-tenue);
+}
+
+.dilema__acciones {
+  display: flex;
+  gap: 6px;
+}
+
+.confirmar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  width: 100%;
+}
+
+.confirmar__pregunta {
+  flex: 1 1 100%;
+  margin: 0;
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.copia {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+  padding: 10px 12px;
+  border: 2px solid var(--mesa-linea);
+  border-radius: 10px;
+  background: var(--mesa);
+  color: inherit;
+  font: 14px/1.45 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  resize: vertical;
+}
+
+/* ---------- Cómo se juega ---------- */
+
+.reglas-carta {
+  width: min(330px, 100%);
+  margin: 6px auto 14px;
+  transform: rotate(1deg);
+}
+
+.reglas-carta .carta {
+  box-shadow: 0 1px 1px rgba(23, 30, 90, .1), 0 14px 26px -14px var(--mesa-sombra);
+}
+
+/* ---------- Resultados de la prueba ---------- */
+
+.resultados {
+  display: grid;
+  gap: 6px;
+  margin: 6px 0 16px;
+}
+
+.veredicto {
+  padding: 12px 0 4px;
+  border-top: 1.5px dashed var(--mesa-linea);
+}
+
+.veredicto__titulo {
+  margin: 0 0 6px;
+  font-family: var(--mano-b);
+  font-weight: 400;
+  font-size: 24px;
+  line-height: 1.1;
+}
+
+.veredicto__cuenta {
+  color: var(--mesa-tenue);
+}
+
+.veredicto__lista {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.veredicto__lista li {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  gap: 8px;
+  padding: 6px 0;
+  font-size: 15px;
+  line-height: 1.35;
+}
+
+.veredicto__id {
+  font-stretch: 70%;
+  font-weight: 650;
+  font-size: 12.5px;
+  letter-spacing: .09em;
+  padding-top: 2px;
+}
+
+.veredicto__texto {
+  overflow-wrap: anywhere;
+}
+
+.acciones--resultados {
+  padding-top: 4px;
+}
+
+/* ---------- Pantallas grandes ---------- */
+
+@media (min-width: 700px) {
+  .menu__boton {
+    font-size: 13px;
+  }
+}
+
+/* ---------- Sin movimiento ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .hoja[open] {
+    animation: none;
+  }
+
+  .boton,
+  .boton:active {
+    transition: none;
+    transform: none;
+  }
+}
+
+@media (max-width: 379px) {
+  .menu__boton {
+    gap: 5px;
+    padding: 0 4px;
+    letter-spacing: .06em;
+  }
+}

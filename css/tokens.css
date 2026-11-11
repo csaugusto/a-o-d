@@ -1,0 +1,53 @@
+/* =====================================================================
+   A o D · Tokens
+   Dirección «Sobremesa a mano»: una sola tinta sobre papeles de colores.
+   Las cartas no cambian con el tema; solo la mesa (fondo de la aplicación).
+   ===================================================================== */
+
+:root {
+  /* Tinta: todo lo escrito y dibujado en las cartas */
+  --tinta: #1F2C92;            /* azul pluma */
+  --servilleta: #FDFDFA;       /* papel sin color y letra sobre azul */
+
+  /* Un papel por categoría */
+  --papel-comida: #FFCF45;       /* maíz */
+  --papel-destinos: #84CDEF;     /* cielo */
+  --papel-familia: #FF9A6B;      /* mamey */
+  --papel-celebrities: #FF8DC0;  /* chicle */
+  --papel-dilemas: #B9A5F5;      /* jacaranda */
+  --papel-asco: #B4D43B;         /* pepinillo */
+  --papel-blanco: var(--servilleta);
+
+  /* Dos manos y una imprenta */
+  --mano-a: "Mansalva", "Bradley Hand", "Segoe Print", "Comic Sans MS", cursive;
+  --mano-b: "Covered By Your Grace", "Marker Felt", "Segoe Print", "Comic Sans MS", cursive;
+  --imprenta: "Archivo", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+
+  /* Mesa: fondo de la aplicación y su texto (cambia con el tema) */
+  --mesa: #F1F3F5;             /* mantel */
+  --mesa-texto: #1F2C92;
+  --mesa-tenue: #5A6297;
+  --mesa-linea: rgba(31, 44, 146, .22);
+  --mesa-sombra: rgba(23, 30, 90, .38);
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --mesa: #141838;           /* mantel de noche */
+    --mesa-texto: #E8EAF8;
+    --mesa-tenue: #A3A9D6;
+    --mesa-linea: rgba(232, 234, 248, .2);
+    --mesa-sombra: rgba(0, 0, 0, .6);
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --mesa: #141838;
+  --mesa-texto: #E8EAF8;
+  --mesa-tenue: #A3A9D6;
+  --mesa-linea: rgba(232, 234, 248, .2);
+  --mesa-sombra: rgba(0, 0, 0, .6);
+  color-scheme: dark;
+}

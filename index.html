@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>A o D</title>
+<meta name="description" content="A o D · El juego de ¿Qué prefieres? Saca una carta, léela en voz alta y que cada quien elija. Hay que elegir.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=Covered+By+Your+Grace&family=Mansalva&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/carta.css">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<div class="app" id="app" data-vista="inicio">
+  <header class="cabeza">
+    <div class="cabeza__logo" id="logo"></div>
+    <div class="cabeza__lado">
+      <button type="button" class="chip" id="chip-prueba" data-abre="hoja-resultados" hidden>Prueba · <span id="marcadas">0</span></button>
+      <p class="cuenta" id="cuenta"></p>
+    </div>
+  </header>
+
+  <main class="mesa">
+    <h1 class="oculto">A o D · El juego de ¿Qué prefieres?</h1>
+    <div class="escenario" id="escenario">
+      <div class="hueco" id="hueco">
+        <div class="monton" id="monton" aria-hidden="true"><i></i><i></i></div>
+      </div>
+    </div>
+    <p class="oculto" id="anuncio" aria-live="polite" aria-atomic="true"></p>
+  </main>
+
+  <div class="pie" id="pie" hidden>
+  <div class="veredictos" id="veredictos" role="group" aria-label="Modo prueba: qué hacer con esta carta" hidden>
+    <button type="button" class="veredicto-boton" id="veredicto-queda" data-veredicto="queda" aria-pressed="false"><span>Se queda<svg class="trazo" aria-hidden="true" focusable="false" preserveAspectRatio="none"><use href="#g-ovalo"/></svg></span></button>
+    <button type="button" class="veredicto-boton" id="veredicto-facil" data-veredicto="facil" aria-pressed="false"><span>Muy fácil<svg class="trazo" aria-hidden="true" focusable="false" preserveAspectRatio="none"><use href="#g-ovalo"/></svg></span></button>
+    <button type="button" class="veredicto-boton" id="veredicto-fuera" data-veredicto="fuera" aria-pressed="false"><span>Fuera<svg class="trazo" aria-hidden="true" focusable="false" preserveAspectRatio="none"><use href="#g-ovalo"/></svg></span></button>
+  </div>
+  <div class="fin-prueba" id="fin-prueba" hidden>
+    <button type="button" class="boton" id="fin-ver-resultados" data-abre="hoja-resultados">Ver resultados de la prueba</button>
+  </div>
+  </div>
+
+  <nav class="mando" aria-label="Cartas">
+    <button type="button" class="boton boton--anterior" id="anterior" aria-label="Carta anterior" aria-disabled="true">
+      <svg class="icono" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M19.5 12.4C15.2 12 10.4 12.2 5.4 12.3"/><path d="M10.8 6.6C9 8.5 7.2 10.4 5.2 12.3 7 14.1 8.9 15.8 10.9 17.6"/></svg>
+      <span>Anterior</span>
+    </button>
+    <button type="button" class="boton boton--principal" id="siguiente">
+      <span id="siguiente-texto">Sacar la primera carta</span>
+      <svg class="icono icono--sigue" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4.5 11.8C8.8 12.1 13.6 12 18.6 11.9"/><path d="M13.3 6.4C15.1 8.3 16.9 10.1 18.8 11.9 17 13.8 15.1 15.6 13.1 17.4"/></svg>
+      <svg class="icono icono--baraja" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3.8 7.4c3.9-.2 6.9.3 9 3.2 2 2.8 3.9 5.6 7.4 5.9"/><path d="M3.8 16.4c3 .1 5.3-.6 6.9-2.4"/><path d="M14.1 9.3c1.5-1.4 3.3-2 6-2"/><path d="M17.6 4.6l2.8 2.7-2.8 2.6"/><path d="M17.5 13.9l2.8 2.6-2.9 2.6"/></svg>
+    </button>
+  </nav>
+
+  <nav class="menu" aria-label="Menú">
+    <button type="button" class="menu__boton" id="abrir-mazo" data-abre="hoja-mazo">
+      <svg class="icono" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9.2 4.4l8.6 1.3c.9.1 1.4.9 1.3 1.7l-1.6 11.1c-.1.9-.9 1.4-1.7 1.3l-8.6-1.3c-.9-.1-1.4-.9-1.3-1.7L7.5 5.7c.1-.9.9-1.4 1.7-1.3z"/><path d="M5.9 7.2l-.6.2c-.8.3-1.2 1.2-.9 2l3.6 10.3c.3.8 1.2 1.2 2 .9l1.4-.5"/></svg>
+      <span>Mazo</span>
+    </button>
+    <button type="button" class="menu__boton" id="abrir-dilemas" data-abre="hoja-dilemas">
+      <svg class="icono icono--trazo" viewBox="0 0 100 100" aria-hidden="true" focusable="false"><use href="#g-pluma"/></svg>
+      <span>Tus dilemas</span>
+    </button>
+    <button type="button" class="menu__boton" id="abrir-reglas" data-abre="hoja-reglas">
+      <svg class="icono" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12.3 3.6C7.4 3.4 3.7 7.2 3.8 12.1c.1 4.6 3.9 8.4 8.6 8.2 4.6-.2 8-4 7.9-8.5C20.2 7.4 17 3.9 12.6 3.7"/><path d="M9.5 9.6c.2-1.7 1.4-2.7 2.8-2.7 1.5 0 2.6 1 2.6 2.4 0 2-2.7 2.2-2.7 4.4"/><path d="M12.2 17.1v.2"/></svg>
+      <span>Cómo se juega</span>
+    </button>
+  </nav>
+</div>
+
+<dialog class="hoja" id="hoja-mazo" aria-labelledby="titulo-mazo">
+  <div class="hoja__papel">
+    <header class="hoja__cabeza">
+      <h2 class="hoja__titulo" id="titulo-mazo">Mazo</h2>
+      <button type="button" class="boton boton--chico" id="cerrar-mazo" data-cerrar>Cerrar</button>
+    </header>
+
+    <fieldset class="grupo">
+      <legend class="grupo__titulo">Categorías</legend>
+      <div class="casillas" id="lista-categorias"></div>
+      <p class="nota nota--aviso" id="nota-categorias" role="status"></p>
+    </fieldset>
+
+    <fieldset class="grupo">
+      <legend class="grupo__titulo">Tus dilemas</legend>
+      <label class="casilla" for="incluir-propios">
+        <input type="checkbox" id="incluir-propios">
+        <svg class="casilla__marca" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4.6 12.8C6.4 14.2 8 15.9 9.4 18.1 12.2 12.6 15.6 8.1 20.1 4.4"/></svg>
+        <span class="casilla__papel casilla__papel--propio" aria-hidden="true"></span>
+        <span class="casilla__texto">Mezclar tus dilemas</span>
+        <span class="casilla__cuenta" id="cuantos-propios"></span>
+      </label>
+      <p class="nota" id="sin-propios">Todavía no escribes ninguno. <button type="button" class="enlace" id="ir-a-dilemas" data-abre="hoja-dilemas">Escribir uno</button></p>
+    </fieldset>
+
+    <div class="grupo">
+      <p class="grupo__titulo" aria-hidden="true">Barajar</p>
+      <p class="nota" id="resumen-mazo"></p>
+      <button type="button" class="boton" id="barajar">
+        <svg class="icono" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3.8 7.4c3.9-.2 6.9.3 9 3.2 2 2.8 3.9 5.6 7.4 5.9"/><path d="M3.8 16.4c3 .1 5.3-.6 6.9-2.4"/><path d="M14.1 9.3c1.5-1.4 3.3-2 6-2"/><path d="M17.6 4.6l2.8 2.7-2.8 2.6"/><path d="M17.5 13.9l2.8 2.6-2.9 2.6"/></svg>
+        <span>Barajar de nuevo</span>
+      </button>
+    </div>
+
+    <fieldset class="grupo grupo--prueba">
+      <legend class="grupo__titulo">Modo prueba</legend>
+      <label class="casilla" for="modo-prueba">
+        <input type="checkbox" id="modo-prueba" aria-describedby="explica-prueba">
+        <svg class="casilla__marca" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4.6 12.8C6.4 14.2 8 15.9 9.4 18.1 12.2 12.6 15.6 8.1 20.1 4.4"/></svg>
+        <span class="casilla__texto">Encender modo prueba</span>
+      </label>
+      <p class="nota" id="explica-prueba">Para depurar el mazo: bajo cada carta aparecen «Se queda», «Muy fácil» y «Fuera».</p>
+      <button type="button" class="boton" id="ir-a-resultados" data-abre="hoja-resultados" hidden>Ver resultados de la prueba</button>
+    </fieldset>
+  </div>
+</dialog>
+
+<dialog class="hoja hoja--ancha" id="hoja-dilemas" aria-labelledby="titulo-dilemas">
+  <div class="hoja__papel">
+    <header class="hoja__cabeza">
+      <h2 class="hoja__titulo" id="titulo-dilemas">Tus dilemas</h2>
+      <button type="button" class="boton boton--chico" id="cerrar-dilemas" data-cerrar>Cerrar</button>
+    </header>
+    <p class="nota">Escribe tu propio «¿Qué prefieres?». Se mezcla con las demás cartas. No se vale ponerlo fácil.</p>
+
+    <form class="editor" id="form-dilema" novalidate>
+      <div class="editor__vista" id="vista-dilema" aria-hidden="true"></div>
+      <div class="editor__campos">
+        <div class="campo">
+          <label class="campo__etiqueta" for="dilema-a">Primera opción</label>
+          <input class="campo__entrada" type="text" id="dilema-a" name="dilema-a" maxlength="60" autocomplete="off" placeholder="algo difícil" aria-describedby="contador-a">
+          <span class="campo__contador" id="contador-a">0/60</span>
+        </div>
+        <div class="campo">
+          <label class="campo__etiqueta" for="dilema-b">Segunda opción</label>
+          <input class="campo__entrada" type="text" id="dilema-b" name="dilema-b" maxlength="60" autocomplete="off" placeholder="algo igual de difícil" aria-describedby="contador-b">
+          <span class="campo__contador" id="contador-b">0/60</span>
+        </div>
+        <p class="nota nota--aviso" id="error-dilema" role="alert"></p>
+        <div class="acciones">
+          <button type="submit" class="boton boton--principal boton--compacto" id="guardar-dilema">Guardar dilema</button>
+          <button type="button" class="boton" id="cancelar-edicion" hidden>Cancelar</button>
+        </div>
+        <p class="nota" id="estado-dilema" role="status"></p>
+      </div>
+    </form>
+
+    <section class="guardados" aria-labelledby="titulo-guardados">
+      <h3 class="grupo__titulo" id="titulo-guardados">Guardados <span id="cuantos-guardados"></span></h3>
+      <p class="nota" id="propios-apagados" hidden>Ahora están fuera del mazo. Enciende «Mezclar tus dilemas» en Mazo para que salgan.</p>
+      <ul class="dilemas" id="lista-dilemas"></ul>
+      <p class="nota" id="sin-dilemas">Todavía no tienes dilemas guardados.</p>
+      <button type="button" class="boton" id="copiar-dilemas">Copiar mis dilemas</button>
+      <p class="nota" id="estado-copia-dilemas" role="status"></p>
+      <label class="oculto" for="copia-dilemas">Tus dilemas como texto</label>
+      <textarea class="copia" id="copia-dilemas" readonly rows="6" hidden></textarea>
+    </section>
+  </div>
+</dialog>
+
+<dialog class="hoja" id="hoja-reglas" aria-labelledby="titulo-reglas">
+  <div class="hoja__papel">
+    <header class="hoja__cabeza">
+      <h2 class="hoja__titulo" id="titulo-reglas">Cómo se juega</h2>
+      <button type="button" class="boton boton--chico" id="cerrar-reglas" data-cerrar>Cerrar</button>
+    </header>
+    <div class="reglas-carta" id="reglas-carta"></div>
+    <p class="nota nota--centro">Toca o desliza la carta para sacar otra. Con teclado: espacio o flechas.</p>
+  </div>
+</dialog>
+
+<dialog class="hoja hoja--ancha" id="hoja-resultados" aria-labelledby="titulo-resultados">
+  <div class="hoja__papel">
+    <header class="hoja__cabeza">
+      <h2 class="hoja__titulo" id="titulo-resultados">Resultados de la prueba</h2>
+      <button type="button" class="boton boton--chico" id="cerrar-resultados" data-cerrar>Cerrar</button>
+    </header>
+    <p class="nota" id="resumen-resultados"></p>
+    <p class="nota" id="sin-marcas" tabindex="-1">Todavía no marcas ninguna carta. Con el modo prueba encendido, bajo cada carta aparecen «Se queda», «Muy fácil» y «Fuera».</p>
+    <div class="resultados" id="lista-resultados"></div>
+    <div class="acciones acciones--resultados" id="acciones-resultados">
+      <button type="button" class="boton" id="copiar-resultados">Copiar resultados</button>
+      <button type="button" class="boton" id="borrar-marcas" data-pide-confirmar>Borrar marcas</button>
+      <div class="confirmar" id="confirmar-marcas" role="group" aria-labelledby="pregunta-borrar-marcas" hidden>
+        <p class="confirmar__pregunta" id="pregunta-borrar-marcas">¿Borrar las marcas? No se puede deshacer.</p>
+        <button type="button" class="boton boton--chico boton--fuerte" id="si-borrar-marcas">Sí, borrar</button>
+        <button type="button" class="boton boton--chico" id="no-borrar-marcas">No</button>
+      </div>
+    </div>
+    <p class="nota" id="estado-copia-resultados" role="status"></p>
+    <label class="oculto" for="copia-resultados">Resultados como texto</label>
+    <textarea class="copia" id="copia-resultados" readonly rows="8" hidden></textarea>
+  </div>
+</dialog>
+
+<script src="js/cartas.js"></script>
+<script src="js/carta.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
