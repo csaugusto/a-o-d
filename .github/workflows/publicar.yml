@@ -1,0 +1,43 @@
+name: Publicar el juego
+
+# Cada push a main publica el juego en GitHub Pages. Solo se sube lo que el
+# navegador necesita para jugar; documentos, diseño e impresión se quedan fuera.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Armar el sitio
+        run: |
+          mkdir -p _sitio
+          cp index.html _sitio/
+          cp -r css js _sitio/
+          touch _sitio/.nojekyll
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _sitio
+
+      - id: deploy
+        uses: actions/deploy-pages@v4
